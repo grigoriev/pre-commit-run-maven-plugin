@@ -12,6 +12,9 @@ Maven plugin for running pre-commit hooks during Maven build lifecycle. Allows e
 # Build and run tests
 mvn clean test
 
+# Build with coverage report
+mvn clean verify
+
 # Build and install locally
 mvn clean install
 
@@ -20,6 +23,10 @@ mvn test -Dtest=PreCommitConfigParserTest
 
 # Run a single test method
 mvn test -Dtest=PreCommitRunMojoTest#execute_shouldSkipWhenSkipIsTrue
+
+# Generate coverage report
+mvn jacoco:report
+# Report at: target/site/jacoco/index.html
 
 # Package without tests
 mvn package -DskipTests
@@ -30,7 +37,7 @@ mvn package -DskipTests
 ### Main Components
 
 - `PreCommitRunMojo` - Main Maven plugin goal (`pre-commit:run`). Configures and orchestrates hook execution.
-- `PreCommitRunner` - Executes pre-commit commands via ProcessBuilder, handles timeouts and output capture.
+- `PreCommitRunner` - Executes pre-commit commands via ProcessBuilder, handles timeouts (configurable) and output capture.
 - `PreCommitConfigParser` - Parses `.pre-commit-config.yaml` using SnakeYAML to verify hook existence.
 
 ### Exit Code Handling
@@ -43,6 +50,16 @@ mvn package -DskipTests
 
 Key parameters in `PreCommitRunMojo`:
 - `hookId` (required) - The pre-commit hook ID to run
-- `files` - List of files to run the hook on (relative paths)
+- `files` (required) - List of files to run the hook on (relative paths). Execution skipped if empty.
 - `failOnModification` - Whether to fail build when hook modifies files (default: false)
 - `skipIfHookNotFound`, `skipIfConfigNotFound`, `skipIfNotInstalled` - Graceful degradation options (default: true)
+- `preCommitExecutable` - Path to pre-commit executable (default: "pre-commit")
+
+## Testing
+
+Tests use JUnit 5, Mockito for mocking, and AssertJ for assertions. Coverage is measured with JaCoCo.
+
+Key test classes:
+- `PreCommitRunMojoTest` - Tests plugin execution logic with mocked dependencies
+- `PreCommitRunnerTest` - Tests process execution including timeouts and interrupts
+- `PreCommitConfigParserTest` - Tests YAML parsing edge cases

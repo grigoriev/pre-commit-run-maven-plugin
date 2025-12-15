@@ -19,7 +19,7 @@ import java.util.List;
  * <plugin>
  *     <groupId>io.github.grigoriev</groupId>
  *     <artifactId>pre-commit-run-maven-plugin</artifactId>
- *     <version>1.0.0-SNAPSHOT</version>
+ *     <version>0.1.0-SNAPSHOT</version>
  *     <executions>
  *         <execution>
  *             <id>format-openapi-json</id>
