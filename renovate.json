@@ -7,5 +7,5 @@
   "dependencyDashboard": true,
   "automerge": true,
   "automergeType": "branch",
-  "platformAutomerge": false
+  "branchConcurrentLimit": 0
 }
