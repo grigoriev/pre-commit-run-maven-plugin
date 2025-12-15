@@ -57,7 +57,7 @@ jobs:
       - name: Build and analyze
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        run: mvn -B verify sonar:sonar
+        run: mvn -B verify sonar:sonar -Dsonar.qualitygate.wait=true
 
   build:
     runs-on: ubuntu-latest
