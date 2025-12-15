@@ -1,0 +1,17 @@
+default_install_hook_types: [pre-commit, commit-msg]
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: check-merge-conflict
+      - id: trailing-whitespace
+      - id: check-xml
+      - id: check-json
+      - id: check-yaml
+      - id: no-commit-to-branch
+      - id: mixed-line-ending
+      - id: end-of-file-fixer
+  - repo: https://github.com/commitizen-tools/commitizen
+    rev: v4.10.0
+    hooks:
+      - id: commitizen
