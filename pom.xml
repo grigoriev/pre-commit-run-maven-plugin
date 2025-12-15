@@ -240,6 +240,8 @@
                         <configuration>
                             <publishingServerId>central</publishingServerId>
                             <autoPublish>true</autoPublish>
+                            <waitUntil>published</waitUntil>
+                            <deploymentTimeout>1800</deploymentTimeout>
                         </configuration>
                     </plugin>
                 </plugins>
