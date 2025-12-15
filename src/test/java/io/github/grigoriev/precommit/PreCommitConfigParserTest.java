@@ -125,6 +125,55 @@ class PreCommitConfigParserTest {
         assertThat(parser.isHookConfigured((File) null, "hook")).isFalse();
     }
 
+    @Test
+    void isHookConfigured_shouldHandleHookNotBeingMap() {
+        // hook entry is not a map (just a string)
+        String yaml = """
+                repos:
+                  - repo: https://example.com
+                    hooks:
+                      - just-a-string
+                      - id: valid-hook
+                """;
+        assertThat(parser.isHookConfigured(toInputStream(yaml), "just-a-string")).isFalse();
+        assertThat(parser.isHookConfigured(toInputStream(yaml), "valid-hook")).isTrue();
+    }
+
+    @Test
+    void isHookConfigured_shouldHandleEmptyRepos() {
+        String yaml = "repos: []";
+        assertThat(parser.isHookConfigured(toInputStream(yaml), "hook")).isFalse();
+    }
+
+    @Test
+    void isHookConfigured_shouldHandleEmptyHooks() {
+        String yaml = """
+                repos:
+                  - repo: https://example.com
+                    hooks: []
+                """;
+        assertThat(parser.isHookConfigured(toInputStream(yaml), "hook")).isFalse();
+    }
+
+    @Test
+    void isHookConfigured_shouldHandleRepoWithoutHooks() {
+        String yaml = """
+                repos:
+                  - repo: https://example.com
+                    rev: v1.0.0
+                """;
+        assertThat(parser.isHookConfigured(toInputStream(yaml), "hook")).isFalse();
+    }
+
+    @Test
+    void isHookConfigured_shouldHandleIOException(@TempDir Path tempDir) throws IOException {
+        // Create a directory with the same name - reading it will cause IOException
+        File configDir = tempDir.resolve(".pre-commit-config.yaml").toFile();
+        configDir.mkdir();
+
+        assertThat(parser.isHookConfigured(configDir, "hook")).isFalse();
+    }
+
     private ByteArrayInputStream toInputStream(String content) {
         return new ByteArrayInputStream(content.getBytes(StandardCharsets.UTF_8));
     }

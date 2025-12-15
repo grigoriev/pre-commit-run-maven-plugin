@@ -15,6 +15,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
@@ -124,6 +125,8 @@ class PreCommitRunMojoTest {
     @Test
     void execute_shouldRunHookSuccessfully() throws Exception {
         createConfigFile();
+        File targetFile = createTargetFile("test.json");
+        mojo.setFiles(List.of("test.json"));
         when(runner.isPreCommitInstalled("pre-commit")).thenReturn(true);
         when(configParser.isHookConfigured(any(File.class), eq("test-hook"))).thenReturn(true);
         when(runner.runHook(eq("pre-commit"), eq("test-hook"), anyList(), any(File.class)))
@@ -131,12 +134,14 @@ class PreCommitRunMojoTest {
 
         mojo.execute();
 
-        verify(runner).runHook(eq("pre-commit"), eq("test-hook"), anyList(), any(File.class));
+        verify(runner).runHook(eq("pre-commit"), eq("test-hook"), eq(List.of(targetFile)), any(File.class));
     }
 
     @Test
     void execute_shouldHandleHookModification() throws Exception {
         createConfigFile();
+        File targetFile = createTargetFile("test.json");
+        mojo.setFiles(List.of("test.json"));
         mojo.setFailOnModification(false);
         when(runner.isPreCommitInstalled("pre-commit")).thenReturn(true);
         when(configParser.isHookConfigured(any(File.class), eq("test-hook"))).thenReturn(true);
@@ -146,12 +151,14 @@ class PreCommitRunMojoTest {
         mojo.execute();
 
         // Should not throw
-        verify(runner).runHook(eq("pre-commit"), eq("test-hook"), anyList(), any(File.class));
+        verify(runner).runHook(eq("pre-commit"), eq("test-hook"), eq(List.of(targetFile)), any(File.class));
     }
 
     @Test
     void execute_shouldFailOnModificationWhenConfigured() throws Exception {
         createConfigFile();
+        createTargetFile("test.json");
+        mojo.setFiles(List.of("test.json"));
         mojo.setFailOnModification(true);
         when(runner.isPreCommitInstalled("pre-commit")).thenReturn(true);
         when(configParser.isHookConfigured(any(File.class), eq("test-hook"))).thenReturn(true);
@@ -166,6 +173,8 @@ class PreCommitRunMojoTest {
     @Test
     void execute_shouldFailOnHookError() throws Exception {
         createConfigFile();
+        createTargetFile("test.json");
+        mojo.setFiles(List.of("test.json"));
         when(runner.isPreCommitInstalled("pre-commit")).thenReturn(true);
         when(configParser.isHookConfigured(any(File.class), eq("test-hook"))).thenReturn(true);
         when(runner.runHook(eq("pre-commit"), eq("test-hook"), anyList(), any(File.class)))
@@ -202,6 +211,55 @@ class PreCommitRunMojoTest {
         mojo.execute();
 
         verify(runner).runHook(eq("pre-commit"), eq("test-hook"), eq(List.of(targetFile)), any(File.class));
+    }
+
+    @Test
+    void execute_shouldRunHookWithEmptyOutput() throws Exception {
+        createConfigFile();
+        File targetFile = createTargetFile("test.json");
+        mojo.setFiles(List.of("test.json"));
+        when(runner.isPreCommitInstalled("pre-commit")).thenReturn(true);
+        when(configParser.isHookConfigured(any(File.class), eq("test-hook"))).thenReturn(true);
+        when(runner.runHook(eq("pre-commit"), eq("test-hook"), anyList(), any(File.class)))
+                .thenReturn(new PreCommitRunner.Result(0, ""));
+
+        mojo.execute();
+
+        verify(runner).runHook(eq("pre-commit"), eq("test-hook"), eq(List.of(targetFile)), any(File.class));
+    }
+
+    @Test
+    void execute_shouldRunHookWithNullOutput() throws Exception {
+        createConfigFile();
+        File targetFile = createTargetFile("test.json");
+        mojo.setFiles(List.of("test.json"));
+        when(runner.isPreCommitInstalled("pre-commit")).thenReturn(true);
+        when(configParser.isHookConfigured(any(File.class), eq("test-hook"))).thenReturn(true);
+        when(runner.runHook(eq("pre-commit"), eq("test-hook"), anyList(), any(File.class)))
+                .thenReturn(new PreCommitRunner.Result(0, null));
+
+        mojo.execute();
+
+        verify(runner).runHook(eq("pre-commit"), eq("test-hook"), eq(List.of(targetFile)), any(File.class));
+    }
+
+    @Test
+    void execute_shouldSkipWhenNoFilesConfigured() throws Exception {
+        createConfigFile();
+        mojo.setFiles(null);
+        when(runner.isPreCommitInstalled("pre-commit")).thenReturn(true);
+        when(configParser.isHookConfigured(any(File.class), eq("test-hook"))).thenReturn(true);
+
+        mojo.execute();
+
+        verify(runner, never()).runHook(anyString(), anyString(), anyList(), any(File.class));
+    }
+
+    @Test
+    void defaultConstructor_shouldCreateInstance() {
+        PreCommitRunMojo defaultMojo = new PreCommitRunMojo();
+        // Just verify it doesn't throw
+        assertThat(defaultMojo).isNotNull();
     }
 
     private void createConfigFile() throws IOException {

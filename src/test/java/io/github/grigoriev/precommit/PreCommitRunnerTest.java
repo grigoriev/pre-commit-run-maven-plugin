@@ -2,6 +2,13 @@ package io.github.grigoriev.precommit;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
+
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -9,15 +16,101 @@ class PreCommitRunnerTest {
 
     private PreCommitRunner runner;
 
+    @TempDir
+    Path tempDir;
+
     @BeforeEach
     void setUp() {
         runner = new PreCommitRunner();
     }
 
+    // isPreCommitInstalled tests
+
     @Test
     void isPreCommitInstalled_shouldReturnFalseForInvalidExecutable() {
         assertThat(runner.isPreCommitInstalled("non-existent-command-12345")).isFalse();
     }
+
+    @Test
+    void isPreCommitInstalled_shouldReturnTrueForValidCommand() {
+        // 'true' command exists on Unix and always returns 0
+        assertThat(runner.isPreCommitInstalled("true")).isTrue();
+    }
+
+    @Test
+    void isPreCommitInstalled_shouldReturnFalseForCommandWithNonZeroExit() {
+        // 'false' command exists on Unix and always returns 1
+        assertThat(runner.isPreCommitInstalled("false")).isFalse();
+    }
+
+    // runHook tests
+
+    @Test
+    void runHook_shouldReturnResultWithOutput() {
+        // Use 'echo' as a fake pre-commit that outputs something
+        PreCommitRunner.Result result = runner.runHook("echo", "test-hook", List.of(), tempDir.toFile());
+
+        assertThat(result.getExitCode()).isEqualTo(0);
+        assertThat(result.getOutput()).contains("run");
+        assertThat(result.getOutput()).contains("test-hook");
+    }
+
+    @Test
+    void runHook_shouldPassFilesToCommand() throws IOException {
+        File testFile = createTestFile("test.txt");
+
+        PreCommitRunner.Result result = runner.runHook("echo", "hook-id", List.of(testFile), tempDir.toFile());
+
+        assertThat(result.getExitCode()).isEqualTo(0);
+        assertThat(result.getOutput()).contains("--files");
+        assertThat(result.getOutput()).contains(testFile.getAbsolutePath());
+    }
+
+    @Test
+    void runHook_shouldHandleEmptyFilesList() {
+        PreCommitRunner.Result result = runner.runHook("echo", "hook-id", List.of(), tempDir.toFile());
+
+        assertThat(result.getExitCode()).isEqualTo(0);
+        assertThat(result.getOutput()).doesNotContain("--files");
+    }
+
+    @Test
+    void runHook_shouldHandleNullFilesList() {
+        PreCommitRunner.Result result = runner.runHook("echo", "hook-id", null, tempDir.toFile());
+
+        assertThat(result.getExitCode()).isEqualTo(0);
+        assertThat(result.getOutput()).doesNotContain("--files");
+    }
+
+    @Test
+    void runHook_shouldReturnNonZeroExitCode() {
+        // 'false' always returns exit code 1
+        PreCommitRunner.Result result = runner.runHook("false", "hook-id", List.of(), tempDir.toFile());
+
+        assertThat(result.getExitCode()).isNotEqualTo(0);
+    }
+
+    @Test
+    void runHook_shouldReturnErrorForInvalidCommand() {
+        PreCommitRunner.Result result = runner.runHook("non-existent-command-xyz", "hook", List.of(), tempDir.toFile());
+
+        assertThat(result.getExitCode()).isEqualTo(-1);
+        assertThat(result.getOutput()).contains("Failed to execute pre-commit");
+    }
+
+    @Test
+    void runHook_shouldHandleMultipleFiles() throws IOException {
+        File file1 = createTestFile("file1.txt");
+        File file2 = createTestFile("file2.txt");
+
+        PreCommitRunner.Result result = runner.runHook("echo", "hook", List.of(file1, file2), tempDir.toFile());
+
+        assertThat(result.getExitCode()).isEqualTo(0);
+        assertThat(result.getOutput()).contains(file1.getAbsolutePath());
+        assertThat(result.getOutput()).contains(file2.getAbsolutePath());
+    }
+
+    // Result class tests
 
     @Test
     void result_isPassed_shouldReturnTrueForExitCode0() {
@@ -61,5 +154,11 @@ class PreCommitRunnerTest {
 
         assertThat(result.getExitCode()).isEqualTo(42);
         assertThat(result.getOutput()).isEqualTo("test output");
+    }
+
+    private File createTestFile(String name) throws IOException {
+        Path filePath = tempDir.resolve(name);
+        Files.writeString(filePath, "test content");
+        return filePath.toFile();
     }
 }
