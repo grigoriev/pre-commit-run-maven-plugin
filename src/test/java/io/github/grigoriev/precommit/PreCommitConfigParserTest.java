@@ -166,7 +166,7 @@ class PreCommitConfigParserTest {
     }
 
     @Test
-    void isHookConfigured_shouldHandleIOException(@TempDir Path tempDir) throws IOException {
+    void isHookConfigured_shouldHandleIOException(@TempDir Path tempDir) {
         // Create a directory with the same name - reading it will cause IOException
         File configDir = tempDir.resolve(".pre-commit-config.yaml").toFile();
         configDir.mkdir();

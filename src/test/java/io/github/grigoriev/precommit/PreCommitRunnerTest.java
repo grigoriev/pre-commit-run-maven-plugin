@@ -51,7 +51,7 @@ class PreCommitRunnerTest {
         // Use 'echo' as a fake pre-commit that outputs something
         PreCommitRunner.Result result = runner.runHook("echo", "test-hook", List.of(), tempDir.toFile());
 
-        assertThat(result.getExitCode()).isEqualTo(0);
+        assertThat(result.getExitCode()).isZero();
         assertThat(result.getOutput()).contains("run");
         assertThat(result.getOutput()).contains("test-hook");
     }
@@ -62,7 +62,7 @@ class PreCommitRunnerTest {
 
         PreCommitRunner.Result result = runner.runHook("echo", "hook-id", List.of(testFile), tempDir.toFile());
 
-        assertThat(result.getExitCode()).isEqualTo(0);
+        assertThat(result.getExitCode()).isZero();
         assertThat(result.getOutput()).contains("--files");
         assertThat(result.getOutput()).contains(testFile.getAbsolutePath());
     }
@@ -71,7 +71,7 @@ class PreCommitRunnerTest {
     void runHook_shouldHandleEmptyFilesList() {
         PreCommitRunner.Result result = runner.runHook("echo", "hook-id", List.of(), tempDir.toFile());
 
-        assertThat(result.getExitCode()).isEqualTo(0);
+        assertThat(result.getExitCode()).isZero();
         assertThat(result.getOutput()).doesNotContain("--files");
     }
 
@@ -79,7 +79,7 @@ class PreCommitRunnerTest {
     void runHook_shouldHandleNullFilesList() {
         PreCommitRunner.Result result = runner.runHook("echo", "hook-id", null, tempDir.toFile());
 
-        assertThat(result.getExitCode()).isEqualTo(0);
+        assertThat(result.getExitCode()).isZero();
         assertThat(result.getOutput()).doesNotContain("--files");
     }
 
@@ -88,7 +88,7 @@ class PreCommitRunnerTest {
         // 'false' always returns exit code 1
         PreCommitRunner.Result result = runner.runHook("false", "hook-id", List.of(), tempDir.toFile());
 
-        assertThat(result.getExitCode()).isNotEqualTo(0);
+        assertThat(result.getExitCode()).isNotZero();
     }
 
     @Test
@@ -106,7 +106,7 @@ class PreCommitRunnerTest {
 
         PreCommitRunner.Result result = runner.runHook("echo", "hook", List.of(file1, file2), tempDir.toFile());
 
-        assertThat(result.getExitCode()).isEqualTo(0);
+        assertThat(result.getExitCode()).isZero();
         assertThat(result.getOutput()).contains(file1.getAbsolutePath());
         assertThat(result.getOutput()).contains(file2.getAbsolutePath());
     }

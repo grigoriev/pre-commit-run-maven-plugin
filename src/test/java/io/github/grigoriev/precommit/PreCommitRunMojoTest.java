@@ -6,6 +6,9 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.NullSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -122,15 +125,17 @@ class PreCommitRunMojoTest {
                 .hasMessageContaining("Hook 'test-hook' not found");
     }
 
-    @Test
-    void execute_shouldRunHookSuccessfully() throws Exception {
+    @ParameterizedTest
+    @NullSource
+    @ValueSource(strings = {"", "Passed"})
+    void execute_shouldRunHookSuccessfullyWithVariousOutputs(String output) throws Exception {
         createConfigFile();
         File targetFile = createTargetFile("test.json");
         mojo.setFiles(List.of("test.json"));
         when(runner.isPreCommitInstalled("pre-commit")).thenReturn(true);
         when(configParser.isHookConfigured(any(File.class), eq("test-hook"))).thenReturn(true);
         when(runner.runHook(eq("pre-commit"), eq("test-hook"), anyList(), any(File.class)))
-                .thenReturn(new PreCommitRunner.Result(0, "Passed"));
+                .thenReturn(new PreCommitRunner.Result(0, output));
 
         mojo.execute();
 
@@ -207,36 +212,6 @@ class PreCommitRunMojoTest {
         when(configParser.isHookConfigured(any(File.class), eq("test-hook"))).thenReturn(true);
         when(runner.runHook(eq("pre-commit"), eq("test-hook"), anyList(), any(File.class)))
                 .thenReturn(new PreCommitRunner.Result(0, "Passed"));
-
-        mojo.execute();
-
-        verify(runner).runHook(eq("pre-commit"), eq("test-hook"), eq(List.of(targetFile)), any(File.class));
-    }
-
-    @Test
-    void execute_shouldRunHookWithEmptyOutput() throws Exception {
-        createConfigFile();
-        File targetFile = createTargetFile("test.json");
-        mojo.setFiles(List.of("test.json"));
-        when(runner.isPreCommitInstalled("pre-commit")).thenReturn(true);
-        when(configParser.isHookConfigured(any(File.class), eq("test-hook"))).thenReturn(true);
-        when(runner.runHook(eq("pre-commit"), eq("test-hook"), anyList(), any(File.class)))
-                .thenReturn(new PreCommitRunner.Result(0, ""));
-
-        mojo.execute();
-
-        verify(runner).runHook(eq("pre-commit"), eq("test-hook"), eq(List.of(targetFile)), any(File.class));
-    }
-
-    @Test
-    void execute_shouldRunHookWithNullOutput() throws Exception {
-        createConfigFile();
-        File targetFile = createTargetFile("test.json");
-        mojo.setFiles(List.of("test.json"));
-        when(runner.isPreCommitInstalled("pre-commit")).thenReturn(true);
-        when(configParser.isHookConfigured(any(File.class), eq("test-hook"))).thenReturn(true);
-        when(runner.runHook(eq("pre-commit"), eq("test-hook"), anyList(), any(File.class)))
-                .thenReturn(new PreCommitRunner.Result(0, null));
 
         mojo.execute();
 
