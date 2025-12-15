@@ -81,31 +81,3 @@ jobs:
         with:
           name: maven-plugin
           path: target/*.jar
-
-  create-pr-on-failure:
-    runs-on: ubuntu-latest
-    needs: [test, sonar, build]
-    if: failure() && startsWith(github.ref, 'refs/heads/renovate/')
-    permissions:
-      contents: write
-      pull-requests: write
-    steps:
-      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
-
-      - name: Create Pull Request
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          WORKFLOW_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-        run: |
-          BRANCH_NAME="${GITHUB_REF#refs/heads/}"
-          gh pr create \
-            --title "Fix: ${BRANCH_NAME}" \
-            --body "## Automated PR
-
-          CI failed for branch \`${BRANCH_NAME}\`. Manual intervention required.
-
-          **Failed workflow run:** ${WORKFLOW_URL}
-
-          Created automatically by CI" \
-            --base main \
-            --head "$BRANCH_NAME"
