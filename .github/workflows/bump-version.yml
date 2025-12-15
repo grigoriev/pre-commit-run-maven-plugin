@@ -1,0 +1,90 @@
+name: Bump Version & Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      bump_type:
+        description: "Version bump type"
+        required: true
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+
+jobs:
+  bump-and-release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.PAT_TOKEN }}
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@c1e323688fd81a25caa38c78aa6df2d33d3e20d9 # v4
+        with:
+          java-version: "17"
+          distribution: "temurin"
+          cache: "maven"
+
+      - name: Get current version
+        id: current
+        run: |
+          VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout | sed 's/-SNAPSHOT//')
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Current version: $VERSION"
+
+      - name: Calculate new version
+        id: new
+        run: |
+          IFS='.' read -r major minor patch <<< "${{ steps.current.outputs.version }}"
+          case "${{ inputs.bump_type }}" in
+            major)
+              major=$((major + 1))
+              minor=0
+              patch=0
+              ;;
+            minor)
+              minor=$((minor + 1))
+              patch=0
+              ;;
+            patch)
+              patch=$((patch + 1))
+              ;;
+          esac
+          NEW_VERSION="${major}.${minor}.${patch}"
+          echo "version=$NEW_VERSION" >> $GITHUB_OUTPUT
+          echo "New version: $NEW_VERSION"
+
+      - name: Update version in pom.xml
+        run: |
+          mvn versions:set -DnewVersion=${{ steps.new.outputs.version }} -DgenerateBackupPoms=false
+          cat pom.xml | grep -A1 '<artifactId>pre-commit-run-maven-plugin</artifactId>'
+
+      - name: Update version in README.md
+        run: |
+          sed -i 's/<version>[0-9]*\.[0-9]*\.[0-9]*<\/version>/<version>${{ steps.new.outputs.version }}<\/version>/g' README.md || true
+
+      - name: Commit and tag
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add pom.xml README.md
+          git commit -m "chore: bump version to ${{ steps.new.outputs.version }}"
+          git tag "v${{ steps.new.outputs.version }}"
+          git push origin main
+          git push origin "v${{ steps.new.outputs.version }}"
+
+      - name: Summary
+        run: |
+          echo "## Release v${{ steps.new.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Version bumped from \`${{ steps.current.outputs.version }}\` to \`${{ steps.new.outputs.version }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "The [release workflow](../../actions/workflows/release.yml) will now:" >> $GITHUB_STEP_SUMMARY
+          echo "- Run tests" >> $GITHUB_STEP_SUMMARY
+          echo "- Create GitHub Release" >> $GITHUB_STEP_SUMMARY
