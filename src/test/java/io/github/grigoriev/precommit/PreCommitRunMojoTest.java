@@ -88,7 +88,7 @@ class PreCommitRunMojoTest {
     }
 
     @Test
-    void execute_shouldFailWhenConfigNotFoundAndNotSkipping() throws IOException {
+    void execute_shouldFailWhenConfigNotFoundAndNotSkipping() {
         mojo.setSkipIfConfigNotFound(false);
         when(runner.isPreCommitInstalled("pre-commit")).thenReturn(true);
 
@@ -110,7 +110,7 @@ class PreCommitRunMojoTest {
     }
 
     @Test
-    void execute_shouldFailWhenHookNotFoundAndNotSkipping() throws IOException {
+    void execute_shouldFailWhenHookNotFoundAndNotSkipping() throws Exception {
         createConfigFile();
         mojo.setSkipIfHookNotFound(false);
         when(runner.isPreCommitInstalled("pre-commit")).thenReturn(true);
@@ -150,7 +150,7 @@ class PreCommitRunMojoTest {
     }
 
     @Test
-    void execute_shouldFailOnModificationWhenConfigured() throws IOException {
+    void execute_shouldFailOnModificationWhenConfigured() throws Exception {
         createConfigFile();
         mojo.setFailOnModification(true);
         when(runner.isPreCommitInstalled("pre-commit")).thenReturn(true);
@@ -164,7 +164,7 @@ class PreCommitRunMojoTest {
     }
 
     @Test
-    void execute_shouldFailOnHookError() throws IOException {
+    void execute_shouldFailOnHookError() throws Exception {
         createConfigFile();
         when(runner.isPreCommitInstalled("pre-commit")).thenReturn(true);
         when(configParser.isHookConfigured(any(File.class), eq("test-hook"))).thenReturn(true);

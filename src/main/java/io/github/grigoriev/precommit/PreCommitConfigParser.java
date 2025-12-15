@@ -8,6 +8,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -42,51 +43,50 @@ public class PreCommitConfigParser {
      * @param hookId      the hook ID to look for
      * @return true if the hook is found
      */
-    @SuppressWarnings("unchecked")
     public boolean isHookConfigured(InputStream inputStream, String hookId) {
         if (inputStream == null || hookId == null || hookId.isEmpty()) {
             return false;
         }
 
         try {
-            LoaderOptions options = new LoaderOptions();
-            Yaml yaml = new Yaml(new SafeConstructor(options));
-            Map<String, Object> config = yaml.load(inputStream);
-
-            if (config == null) {
-                return false;
-            }
-
-            Object repos = config.get("repos");
-            if (!(repos instanceof List)) {
-                return false;
-            }
-
-            for (Object repo : (List<?>) repos) {
-                if (!(repo instanceof Map)) {
-                    continue;
-                }
-
-                Object hooks = ((Map<String, Object>) repo).get("hooks");
-                if (!(hooks instanceof List)) {
-                    continue;
-                }
-
-                for (Object hook : (List<?>) hooks) {
-                    if (!(hook instanceof Map)) {
-                        continue;
-                    }
-
-                    Object id = ((Map<String, Object>) hook).get("id");
-                    if (hookId.equals(id)) {
-                        return true;
-                    }
-                }
-            }
-
-            return false;
+            Map<String, Object> config = parseYaml(inputStream);
+            List<Map<String, Object>> repos = getRepos(config);
+            return repos.stream()
+                    .flatMap(repo -> getHooks(repo).stream())
+                    .anyMatch(hook -> hookId.equals(hook.get("id")));
         } catch (Exception e) {
             return false;
         }
+    }
+
+    private Map<String, Object> parseYaml(InputStream inputStream) {
+        LoaderOptions options = new LoaderOptions();
+        Yaml yaml = new Yaml(new SafeConstructor(options));
+        Map<String, Object> config = yaml.load(inputStream);
+        return config != null ? config : Collections.emptyMap();
+    }
+
+    @SuppressWarnings("unchecked")
+    private List<Map<String, Object>> getRepos(Map<String, Object> config) {
+        Object repos = config.get("repos");
+        if (repos instanceof List<?> repoList) {
+            return repoList.stream()
+                    .filter(Map.class::isInstance)
+                    .map(repo -> (Map<String, Object>) repo)
+                    .toList();
+        }
+        return Collections.emptyList();
+    }
+
+    @SuppressWarnings("unchecked")
+    private List<Map<String, Object>> getHooks(Map<String, Object> repo) {
+        Object hooks = repo.get("hooks");
+        if (hooks instanceof List<?> hookList) {
+            return hookList.stream()
+                    .filter(Map.class::isInstance)
+                    .map(hook -> (Map<String, Object>) hook)
+                    .toList();
+        }
+        return Collections.emptyList();
     }
 }

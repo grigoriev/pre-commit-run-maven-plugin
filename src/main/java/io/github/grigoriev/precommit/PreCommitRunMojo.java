@@ -40,59 +40,32 @@ import java.util.List;
 @Mojo(name = "run", defaultPhase = LifecyclePhase.NONE, threadSafe = true)
 public class PreCommitRunMojo extends AbstractMojo {
 
-    /**
-     * The base directory of the project.
-     */
+    private static final String HOOK_PREFIX = "Hook '";
+
     @Parameter(defaultValue = "${project.basedir}", readonly = true, required = true)
     private File basedir;
 
-    /**
-     * The pre-commit hook ID to run.
-     */
     @Parameter(property = "precommit.hookId", required = true)
     private String hookId;
 
-    /**
-     * Files to run the hook on. Paths are relative to the project base directory.
-     */
     @Parameter(property = "precommit.files")
     private List<String> files;
 
-    /**
-     * Whether to skip execution if the hook is not found in .pre-commit-config.yaml.
-     * If false, the build will fail when the hook is not configured.
-     */
     @Parameter(property = "precommit.skipIfHookNotFound", defaultValue = "true")
     private boolean skipIfHookNotFound;
 
-    /**
-     * Whether to skip execution if .pre-commit-config.yaml is not found.
-     */
     @Parameter(property = "precommit.skipIfConfigNotFound", defaultValue = "true")
     private boolean skipIfConfigNotFound;
 
-    /**
-     * Whether to skip execution if pre-commit is not installed.
-     */
     @Parameter(property = "precommit.skipIfNotInstalled", defaultValue = "true")
     private boolean skipIfNotInstalled;
 
-    /**
-     * Whether to fail the build if the hook modifies files (exit code 1).
-     * By default, file modifications are treated as success.
-     */
     @Parameter(property = "precommit.failOnModification", defaultValue = "false")
     private boolean failOnModification;
 
-    /**
-     * Whether to skip the entire execution.
-     */
     @Parameter(property = "precommit.skip", defaultValue = "false")
     private boolean skip;
 
-    /**
-     * The pre-commit executable name or path.
-     */
     @Parameter(property = "precommit.executable", defaultValue = "pre-commit")
     private String preCommitExecutable;
 
@@ -104,7 +77,6 @@ public class PreCommitRunMojo extends AbstractMojo {
         this.runner = new PreCommitRunner();
     }
 
-    // Constructor for testing
     PreCommitRunMojo(PreCommitConfigParser configParser, PreCommitRunner runner) {
         this.configParser = configParser;
         this.runner = runner;
@@ -117,60 +89,70 @@ public class PreCommitRunMojo extends AbstractMojo {
             return;
         }
 
-        // Check if pre-commit is installed
-        if (!runner.isPreCommitInstalled(preCommitExecutable)) {
-            if (skipIfNotInstalled) {
-                getLog().warn("pre-commit is not installed or not in PATH, skipping execution");
-                return;
-            }
-            throw new MojoFailureException("pre-commit is not installed or not in PATH");
+        if (!checkPreCommitInstalled()) {
+            return;
         }
 
-        // Check for .pre-commit-config.yaml
+        File configFile = getConfigFileIfExists();
+        if (configFile == null) {
+            return;
+        }
+
+        if (!checkHookConfigured(configFile)) {
+            return;
+        }
+
+        List<File> resolvedFiles = resolveAndValidateFiles();
+        if (resolvedFiles == null) {
+            return;
+        }
+
+        runHookAndHandleResult(resolvedFiles);
+    }
+
+    private boolean checkPreCommitInstalled() throws MojoFailureException {
+        if (runner.isPreCommitInstalled(preCommitExecutable)) {
+            return true;
+        }
+        if (skipIfNotInstalled) {
+            getLog().warn("pre-commit is not installed or not in PATH, skipping execution");
+            return false;
+        }
+        throw new MojoFailureException("pre-commit is not installed or not in PATH");
+    }
+
+    private File getConfigFileIfExists() throws MojoFailureException {
         File configFile = new File(basedir, ".pre-commit-config.yaml");
-        if (!configFile.exists()) {
-            if (skipIfConfigNotFound) {
-                getLog().info("No .pre-commit-config.yaml found, skipping execution");
-                return;
-            }
-            throw new MojoFailureException(".pre-commit-config.yaml not found in " + basedir);
+        if (configFile.exists()) {
+            return configFile;
         }
-
-        // Check if hook is configured
-        if (!configParser.isHookConfigured(configFile, hookId)) {
-            if (skipIfHookNotFound) {
-                getLog().info("Hook '" + hookId + "' not found in .pre-commit-config.yaml, skipping execution");
-                return;
-            }
-            throw new MojoFailureException("Hook '" + hookId + "' not found in .pre-commit-config.yaml");
+        if (skipIfConfigNotFound) {
+            getLog().info("No .pre-commit-config.yaml found, skipping execution");
+            return null;
         }
+        throw new MojoFailureException(".pre-commit-config.yaml not found in " + basedir);
+    }
 
-        // Resolve file paths
+    private boolean checkHookConfigured(File configFile) throws MojoFailureException {
+        if (configParser.isHookConfigured(configFile, hookId)) {
+            return true;
+        }
+        if (skipIfHookNotFound) {
+            getLog().info(HOOK_PREFIX + hookId + "' not found in .pre-commit-config.yaml, skipping execution");
+            return false;
+        }
+        throw new MojoFailureException(HOOK_PREFIX + hookId + "' not found in .pre-commit-config.yaml");
+    }
+
+    private List<File> resolveAndValidateFiles() {
         List<File> resolvedFiles = resolveFiles();
-
-        // Check if files exist
         for (File file : resolvedFiles) {
             if (!file.exists()) {
                 getLog().info("File not found: " + file.getPath() + ", skipping");
-                return;
+                return null;
             }
         }
-
-        // Run the hook
-        getLog().info("Running pre-commit hook '" + hookId + "'" +
-                (resolvedFiles.isEmpty() ? "" : " on " + resolvedFiles.size() + " file(s)"));
-
-        PreCommitRunner.Result result = runner.runHook(preCommitExecutable, hookId, resolvedFiles, basedir);
-
-        // Log output if present
-        if (result.getOutput() != null && !result.getOutput().isEmpty()) {
-            for (String line : result.getOutput().split("\n")) {
-                getLog().info(line);
-            }
-        }
-
-        // Handle exit code
-        handleExitCode(result.getExitCode());
+        return resolvedFiles;
     }
 
     private List<File> resolveFiles() {
@@ -182,24 +164,47 @@ public class PreCommitRunMojo extends AbstractMojo {
                 .toList();
     }
 
-    private void handleExitCode(int exitCode) throws MojoFailureException {
-        switch (exitCode) {
-            case 0:
-                getLog().info("Hook '" + hookId + "' passed (no changes needed)");
-                break;
-            case 1:
-                if (failOnModification) {
-                    throw new MojoFailureException("Hook '" + hookId + "' modified files. " +
-                            "Review the changes and commit them, or set failOnModification=false");
-                }
-                getLog().info("Hook '" + hookId + "' modified files");
-                break;
-            default:
-                throw new MojoFailureException("Hook '" + hookId + "' failed with exit code " + exitCode);
+    private void runHookAndHandleResult(List<File> resolvedFiles) throws MojoFailureException {
+        logHookStart(resolvedFiles);
+        PreCommitRunner.Result result = runner.runHook(preCommitExecutable, hookId, resolvedFiles, basedir);
+        logOutput(result);
+        handleExitCode(result.getExitCode());
+    }
+
+    private void logHookStart(List<File> resolvedFiles) {
+        String fileInfo = resolvedFiles.isEmpty() ? "" : " on " + resolvedFiles.size() + " file(s)";
+        getLog().info("Running pre-commit hook '" + hookId + "'" + fileInfo);
+    }
+
+    private void logOutput(PreCommitRunner.Result result) {
+        String output = result.getOutput();
+        if (output != null && !output.isEmpty()) {
+            for (String line : output.split("\n")) {
+                getLog().info(line);
+            }
         }
     }
 
-    // Setters for testing
+    private void handleExitCode(int exitCode) throws MojoFailureException {
+        if (exitCode == 0) {
+            getLog().info(HOOK_PREFIX + hookId + "' passed (no changes needed)");
+            return;
+        }
+        if (exitCode == 1) {
+            handleModification();
+            return;
+        }
+        throw new MojoFailureException(HOOK_PREFIX + hookId + "' failed with exit code " + exitCode);
+    }
+
+    private void handleModification() throws MojoFailureException {
+        if (failOnModification) {
+            throw new MojoFailureException(HOOK_PREFIX + hookId + "' modified files. " +
+                    "Review the changes and commit them, or set failOnModification=false");
+        }
+        getLog().info(HOOK_PREFIX + hookId + "' modified files");
+    }
+
     void setBasedir(File basedir) {
         this.basedir = basedir;
     }

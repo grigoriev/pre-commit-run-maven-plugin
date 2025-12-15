@@ -3,7 +3,9 @@ package io.github.grigoriev.precommit;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -27,12 +29,7 @@ public class PreCommitRunner {
             pb.redirectErrorStream(true);
             Process process = pb.start();
 
-            // Consume output to prevent blocking
-            try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
-                while (reader.readLine() != null) {
-                    // Drain the output
-                }
-            }
+            drainStream(process.getInputStream());
 
             boolean finished = process.waitFor(10, TimeUnit.SECONDS);
             if (!finished) {
@@ -40,12 +37,16 @@ public class PreCommitRunner {
                 return false;
             }
             return process.exitValue() == 0;
-        } catch (IOException | InterruptedException e) {
-            if (e instanceof InterruptedException) {
-                Thread.currentThread().interrupt();
-            }
+        } catch (IOException e) {
+            return false;
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
             return false;
         }
+    }
+
+    private void drainStream(InputStream inputStream) throws IOException {
+        inputStream.transferTo(OutputStream.nullOutputStream());
     }
 
     /**
@@ -58,17 +59,7 @@ public class PreCommitRunner {
      * @return the result containing exit code and output
      */
     public Result runHook(String executable, String hookId, List<File> files, File workingDir) {
-        List<String> command = new ArrayList<>();
-        command.add(executable);
-        command.add("run");
-        command.add(hookId);
-
-        if (files != null && !files.isEmpty()) {
-            command.add("--files");
-            for (File file : files) {
-                command.add(file.getAbsolutePath());
-            }
-        }
+        List<String> command = buildCommand(executable, hookId, files);
 
         try {
             ProcessBuilder pb = new ProcessBuilder(command);
@@ -78,16 +69,7 @@ public class PreCommitRunner {
             Process process = pb.start();
             StringBuilder output = new StringBuilder();
 
-            Thread outputReader = new Thread(() -> {
-                try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
-                    String line;
-                    while ((line = reader.readLine()) != null) {
-                        output.append(line).append("\n");
-                    }
-                } catch (IOException e) {
-                    output.append("Error reading output: ").append(e.getMessage()).append("\n");
-                }
-            });
+            Thread outputReader = createOutputReaderThread(process, output);
             outputReader.start();
 
             boolean finished = process.waitFor(DEFAULT_TIMEOUT_SECONDS, TimeUnit.SECONDS);
@@ -107,6 +89,34 @@ public class PreCommitRunner {
         }
     }
 
+    private List<String> buildCommand(String executable, String hookId, List<File> files) {
+        List<String> command = new ArrayList<>();
+        command.add(executable);
+        command.add("run");
+        command.add(hookId);
+
+        if (files != null && !files.isEmpty()) {
+            command.add("--files");
+            for (File file : files) {
+                command.add(file.getAbsolutePath());
+            }
+        }
+        return command;
+    }
+
+    private Thread createOutputReaderThread(Process process, StringBuilder output) {
+        return new Thread(() -> {
+            try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    output.append(line).append("\n");
+                }
+            } catch (IOException e) {
+                output.append("Error reading output: ").append(e.getMessage()).append("\n");
+            }
+        });
+    }
+
     /**
      * Result of a pre-commit hook execution.
      */
@@ -119,43 +129,22 @@ public class PreCommitRunner {
             this.output = output;
         }
 
-        /**
-         * Gets the exit code.
-         * <ul>
-         *   <li>0 - Hook passed, no changes made</li>
-         *   <li>1 - Hook modified files</li>
-         *   <li>Other - Hook failed</li>
-         *   <li>-1 - Execution error (timeout, IO error, etc.)</li>
-         * </ul>
-         */
         public int getExitCode() {
             return exitCode;
         }
 
-        /**
-         * Gets the combined stdout/stderr output.
-         */
         public String getOutput() {
             return output;
         }
 
-        /**
-         * Returns true if the hook passed (exit code 0).
-         */
         public boolean isPassed() {
             return exitCode == 0;
         }
 
-        /**
-         * Returns true if the hook modified files (exit code 1).
-         */
         public boolean isModified() {
             return exitCode == 1;
         }
 
-        /**
-         * Returns true if the hook failed (exit code > 1 or < 0).
-         */
         public boolean isFailed() {
             return exitCode > 1 || exitCode < 0;
         }
