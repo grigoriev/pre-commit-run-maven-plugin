@@ -16,6 +16,19 @@ import java.util.concurrent.TimeUnit;
 public class PreCommitRunner {
 
     private static final long DEFAULT_TIMEOUT_SECONDS = 300;
+    private static final long DEFAULT_INSTALL_CHECK_TIMEOUT_SECONDS = 10;
+
+    private final long timeoutSeconds;
+    private final long installCheckTimeoutSeconds;
+
+    public PreCommitRunner() {
+        this(DEFAULT_TIMEOUT_SECONDS, DEFAULT_INSTALL_CHECK_TIMEOUT_SECONDS);
+    }
+
+    PreCommitRunner(long timeoutSeconds, long installCheckTimeoutSeconds) {
+        this.timeoutSeconds = timeoutSeconds;
+        this.installCheckTimeoutSeconds = installCheckTimeoutSeconds;
+    }
 
     /**
      * Checks if pre-commit is installed and available.
@@ -31,7 +44,7 @@ public class PreCommitRunner {
 
             drainStream(process.getInputStream());
 
-            boolean finished = process.waitFor(10, TimeUnit.SECONDS);
+            boolean finished = process.waitFor(installCheckTimeoutSeconds, TimeUnit.SECONDS);
             if (!finished) {
                 process.destroyForcibly();
                 return false;
@@ -72,12 +85,12 @@ public class PreCommitRunner {
             Thread outputReader = createOutputReaderThread(process, output);
             outputReader.start();
 
-            boolean finished = process.waitFor(DEFAULT_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+            boolean finished = process.waitFor(timeoutSeconds, TimeUnit.SECONDS);
             outputReader.join(5000);
 
             if (!finished) {
                 process.destroyForcibly();
-                return new Result(-1, "Process timed out after " + DEFAULT_TIMEOUT_SECONDS + " seconds");
+                return new Result(-1, "Process timed out after " + timeoutSeconds + " seconds");
             }
 
             return new Result(process.exitValue(), output.toString().trim());
@@ -105,16 +118,18 @@ public class PreCommitRunner {
     }
 
     private Thread createOutputReaderThread(Process process, StringBuilder output) {
-        return new Thread(() -> {
-            try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
-                String line;
-                while ((line = reader.readLine()) != null) {
-                    output.append(line).append("\n");
-                }
-            } catch (IOException e) {
-                output.append("Error reading output: ").append(e.getMessage()).append("\n");
+        return new Thread(() -> readProcessOutput(process.getInputStream(), output));
+    }
+
+    void readProcessOutput(InputStream inputStream, StringBuilder output) {
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                output.append(line).append("\n");
             }
-        });
+        } catch (IOException e) {
+            output.append("Error reading output: ").append(e.getMessage()).append("\n");
+        }
     }
 
     /**

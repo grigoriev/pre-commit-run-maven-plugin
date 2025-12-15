@@ -6,6 +6,7 @@ import org.junit.jupiter.api.io.TempDir;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
@@ -154,6 +155,80 @@ class PreCommitRunnerTest {
 
         assertThat(result.getExitCode()).isEqualTo(42);
         assertThat(result.getOutput()).isEqualTo("test output");
+    }
+
+    // Timeout tests
+
+    @Test
+    void isPreCommitInstalled_shouldReturnFalseOnTimeout() throws IOException {
+        // Create a script that ignores arguments and sleeps
+        Path script = tempDir.resolve("slow_version.sh");
+        Files.writeString(script, "#!/bin/bash\nsleep 10\n");
+        script.toFile().setExecutable(true);
+
+        PreCommitRunner shortTimeoutRunner = new PreCommitRunner(1, 0);
+
+        boolean result = shortTimeoutRunner.isPreCommitInstalled(script.toString());
+
+        assertThat(result).isFalse();
+    }
+
+    @Test
+    void runHook_shouldReturnTimeoutResultOnTimeout() throws IOException {
+        // Create a script that sleeps
+        Path script = tempDir.resolve("slow_hook.sh");
+        Files.writeString(script, "#!/bin/bash\nsleep 10\n");
+        script.toFile().setExecutable(true);
+
+        PreCommitRunner shortTimeoutRunner = new PreCommitRunner(0, 1);
+
+        PreCommitRunner.Result result = shortTimeoutRunner.runHook(script.toString(), "hook", List.of(), tempDir.toFile());
+
+        assertThat(result.getExitCode()).isEqualTo(-1);
+        assertThat(result.getOutput()).contains("timed out");
+    }
+
+    // InterruptedException tests
+
+    @Test
+    void isPreCommitInstalled_shouldHandleInterruption() throws Exception {
+        Thread testThread = new Thread(() -> {
+            Thread.currentThread().interrupt();
+            boolean result = runner.isPreCommitInstalled("sleep");
+            assertThat(result).isFalse();
+        });
+        testThread.start();
+        testThread.join(5000);
+    }
+
+    @Test
+    void runHook_shouldHandleInterruption() throws Exception {
+        Thread testThread = new Thread(() -> {
+            Thread.currentThread().interrupt();
+            PreCommitRunner.Result result = runner.runHook("sleep", "10", List.of(), tempDir.toFile());
+            assertThat(result.getExitCode()).isEqualTo(-1);
+            assertThat(result.getOutput()).contains("interrupted");
+        });
+        testThread.start();
+        testThread.join(5000);
+    }
+
+    // IOException in output reader test
+
+    @Test
+    void readProcessOutput_shouldHandleIOException() {
+        InputStream failingStream = new InputStream() {
+            @Override
+            public int read() throws IOException {
+                throw new IOException("Test IO error");
+            }
+        };
+        StringBuilder output = new StringBuilder();
+
+        runner.readProcessOutput(failingStream, output);
+
+        assertThat(output.toString()).contains("Error reading output");
+        assertThat(output.toString()).contains("Test IO error");
     }
 
     private File createTestFile(String name) throws IOException {

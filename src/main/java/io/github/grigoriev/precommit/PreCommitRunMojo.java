@@ -173,8 +173,7 @@ public class PreCommitRunMojo extends AbstractMojo {
     }
 
     private void logHookStart(List<File> resolvedFiles) {
-        String fileInfo = resolvedFiles.isEmpty() ? "" : " on " + resolvedFiles.size() + " file(s)";
-        getLog().info("Running pre-commit hook '" + hookId + "'" + fileInfo);
+        getLog().info("Running pre-commit hook '" + hookId + "' on " + resolvedFiles.size() + " file(s)");
     }
 
     private void logOutput(PreCommitRunner.Result result) {

@@ -244,9 +244,21 @@ class PreCommitRunMojoTest {
     }
 
     @Test
-    void execute_shouldSkipWhenNoFilesConfigured() throws Exception {
+    void execute_shouldSkipWhenFilesIsNull() throws Exception {
         createConfigFile();
         mojo.setFiles(null);
+        when(runner.isPreCommitInstalled("pre-commit")).thenReturn(true);
+        when(configParser.isHookConfigured(any(File.class), eq("test-hook"))).thenReturn(true);
+
+        mojo.execute();
+
+        verify(runner, never()).runHook(anyString(), anyString(), anyList(), any(File.class));
+    }
+
+    @Test
+    void execute_shouldSkipWhenFilesIsEmptyList() throws Exception {
+        createConfigFile();
+        mojo.setFiles(List.of());
         when(runner.isPreCommitInstalled("pre-commit")).thenReturn(true);
         when(configParser.isHookConfigured(any(File.class), eq("test-hook"))).thenReturn(true);
 
