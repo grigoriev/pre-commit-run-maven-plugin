@@ -24,7 +24,7 @@
 - [ ] Add SBOM (Software Bill of Materials) generation to release workflow
 
 ### Testing
-- [ ] Add concurrent execution tests (plugin is marked `threadSafe=true` but not tested)
+- [x] Add concurrent execution tests (plugin is marked `threadSafe=true` but not tested)
 
 ## Low Priority
 

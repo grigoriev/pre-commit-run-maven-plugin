@@ -12,7 +12,13 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -257,5 +263,107 @@ class PreCommitRunnerTest {
         Path filePath = tempDir.resolve(name);
         Files.writeString(filePath, "test content");
         return filePath.toFile();
+    }
+
+    // Concurrent execution tests
+
+    @Test
+    @DisabledOnOs(OS.WINDOWS)
+    void runHook_shouldBeThreadSafe() throws Exception {
+        int threadCount = 10;
+        ExecutorService executor = Executors.newFixedThreadPool(threadCount);
+        CountDownLatch startLatch = new CountDownLatch(1);
+        List<Future<PreCommitRunner.Result>> futures = new ArrayList<>();
+
+        // Submit tasks that all start at the same time
+        for (int i = 0; i < threadCount; i++) {
+            final int index = i;
+            futures.add(executor.submit(() -> {
+                startLatch.await(); // Wait for all threads to be ready
+                return runner.runHook("echo", "hook-" + index, List.of(), tempDir.toFile());
+            }));
+        }
+
+        // Start all threads simultaneously
+        startLatch.countDown();
+
+        // Collect results
+        List<PreCommitRunner.Result> results = new ArrayList<>();
+        for (Future<PreCommitRunner.Result> future : futures) {
+            results.add(future.get(30, TimeUnit.SECONDS));
+        }
+
+        executor.shutdown();
+        assertThat(executor.awaitTermination(10, TimeUnit.SECONDS)).isTrue();
+
+        // All executions should succeed
+        assertThat(results).hasSize(threadCount);
+        for (int i = 0; i < threadCount; i++) {
+            assertThat(results.get(i).getExitCode()).isZero();
+            assertThat(results.get(i).getOutput()).contains("hook-" + i);
+        }
+    }
+
+    @Test
+    void isPreCommitInstalled_shouldBeThreadSafe() throws Exception {
+        int threadCount = 10;
+        ExecutorService executor = Executors.newFixedThreadPool(threadCount);
+        CountDownLatch startLatch = new CountDownLatch(1);
+        List<Future<Boolean>> futures = new ArrayList<>();
+
+        for (int i = 0; i < threadCount; i++) {
+            futures.add(executor.submit(() -> {
+                startLatch.await();
+                return runner.isPreCommitInstalled("non-existent-command-xyz");
+            }));
+        }
+
+        startLatch.countDown();
+
+        List<Boolean> results = new ArrayList<>();
+        for (Future<Boolean> future : futures) {
+            results.add(future.get(30, TimeUnit.SECONDS));
+        }
+
+        executor.shutdown();
+        assertThat(executor.awaitTermination(10, TimeUnit.SECONDS)).isTrue();
+
+        // All should return false (command doesn't exist)
+        assertThat(results).hasSize(threadCount).containsOnly(false);
+    }
+
+    @Test
+    @DisabledOnOs(OS.WINDOWS)
+    void multipleRunnerInstances_shouldWorkConcurrently() throws Exception {
+        int threadCount = 5;
+        ExecutorService executor = Executors.newFixedThreadPool(threadCount);
+        CountDownLatch startLatch = new CountDownLatch(1);
+        List<Future<PreCommitRunner.Result>> futures = new ArrayList<>();
+
+        // Each thread uses its own PreCommitRunner instance
+        for (int i = 0; i < threadCount; i++) {
+            final int index = i;
+            futures.add(executor.submit(() -> {
+                PreCommitRunner localRunner = new PreCommitRunner();
+                startLatch.await();
+                return localRunner.runHook("echo", "instance-" + index, List.of(), tempDir.toFile());
+            }));
+        }
+
+        startLatch.countDown();
+
+        List<PreCommitRunner.Result> results = new ArrayList<>();
+        for (Future<PreCommitRunner.Result> future : futures) {
+            results.add(future.get(30, TimeUnit.SECONDS));
+        }
+
+        executor.shutdown();
+        assertThat(executor.awaitTermination(10, TimeUnit.SECONDS)).isTrue();
+
+        assertThat(results).hasSize(threadCount);
+        for (int i = 0; i < threadCount; i++) {
+            assertThat(results.get(i).getExitCode()).isZero();
+            assertThat(results.get(i).getOutput()).contains("instance-" + i);
+        }
     }
 }
