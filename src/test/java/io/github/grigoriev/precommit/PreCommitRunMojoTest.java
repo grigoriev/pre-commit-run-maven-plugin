@@ -342,6 +342,62 @@ class PreCommitRunMojoTest {
     }
 
     @Test
+    void execute_shouldFailWhenEmptyHooksAndNullHookId() {
+        mojo.setHookId(null);
+        mojo.setHooks(List.of());
+
+        assertThatThrownBy(() -> mojo.execute())
+                .isInstanceOf(MojoExecutionException.class)
+                .hasMessageContaining("Either 'hookId' or 'hooks' must be specified");
+    }
+
+    @Test
+    void execute_shouldFailWhenEmptyHookIdAndNullHooks() {
+        mojo.setHookId("");
+        mojo.setHooks(null);
+
+        assertThatThrownBy(() -> mojo.execute())
+                .isInstanceOf(MojoExecutionException.class)
+                .hasMessageContaining("Either 'hookId' or 'hooks' must be specified");
+    }
+
+    @Test
+    void execute_shouldFallbackToHookIdWhenHooksIsEmpty() throws Exception {
+        createConfigFile();
+        File targetFile = createTargetFile("test.json");
+        mojo.setHookId("fallback-hook");
+        mojo.setHooks(List.of());
+        mojo.setFiles(List.of("test.json"));
+
+        when(runner.isPreCommitInstalled("pre-commit")).thenReturn(true);
+        when(configParser.isHookConfigured(any(File.class), eq("fallback-hook"))).thenReturn(true);
+        when(runner.runHook(eq("pre-commit"), eq("fallback-hook"), anyList(), any(File.class), isNull()))
+                .thenReturn(new PreCommitRunner.Result(0, "Passed"));
+
+        mojo.execute();
+
+        verify(runner).runHook(eq("pre-commit"), eq("fallback-hook"), eq(List.of(targetFile)), any(File.class), isNull());
+    }
+
+    @Test
+    void execute_shouldPassEmptyEnvironmentVariables() throws Exception {
+        createConfigFile();
+        File targetFile = createTargetFile("test.json");
+        mojo.setFiles(List.of("test.json"));
+        Map<String, String> emptyEnvVars = Map.of();
+        mojo.setEnvironmentVariables(emptyEnvVars);
+
+        when(runner.isPreCommitInstalled("pre-commit")).thenReturn(true);
+        when(configParser.isHookConfigured(any(File.class), eq("test-hook"))).thenReturn(true);
+        when(runner.runHook(eq("pre-commit"), eq("test-hook"), anyList(), any(File.class), eq(emptyEnvVars)))
+                .thenReturn(new PreCommitRunner.Result(0, "Passed"));
+
+        mojo.execute();
+
+        verify(runner).runHook(eq("pre-commit"), eq("test-hook"), eq(List.of(targetFile)), any(File.class), eq(emptyEnvVars));
+    }
+
+    @Test
     void execute_shouldPreferHooksOverHookId() throws Exception {
         createConfigFile();
         File targetFile = createTargetFile("test.json");

@@ -12,6 +12,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -131,6 +132,42 @@ class PreCommitRunnerTest {
         assertThat(result.getExitCode()).isZero();
         assertThat(result.getOutput()).contains(file1.getAbsolutePath());
         assertThat(result.getOutput()).contains(file2.getAbsolutePath());
+    }
+
+    // Environment variables tests
+
+    @Test
+    @DisabledOnOs(OS.WINDOWS)
+    void runHook_shouldPassEnvironmentVariables() throws IOException {
+        // Create a script that prints the environment variable
+        Path script = tempDir.resolve("echo_env.sh");
+        Files.writeString(script, "#!/bin/bash\necho \"VAR=$MY_TEST_VAR\"\n");
+        script.toFile().setExecutable(true);
+
+        Map<String, String> envVars = Map.of("MY_TEST_VAR", "test_value_123");
+
+        PreCommitRunner.Result result = runner.runHook(script.toString(), "hook-id", List.of(), tempDir.toFile(), envVars);
+
+        assertThat(result.getExitCode()).isZero();
+        assertThat(result.getOutput()).contains("VAR=test_value_123");
+    }
+
+    @Test
+    @DisabledOnOs(OS.WINDOWS)
+    void runHook_shouldWorkWithEmptyEnvironmentVariables() {
+        Map<String, String> emptyEnvVars = Map.of();
+
+        PreCommitRunner.Result result = runner.runHook("echo", "hook-id", List.of(), tempDir.toFile(), emptyEnvVars);
+
+        assertThat(result.getExitCode()).isZero();
+    }
+
+    @Test
+    @DisabledOnOs(OS.WINDOWS)
+    void runHook_shouldWorkWithNullEnvironmentVariables() {
+        PreCommitRunner.Result result = runner.runHook("echo", "hook-id", List.of(), tempDir.toFile(), null);
+
+        assertThat(result.getExitCode()).isZero();
     }
 
     // Timeout tests
