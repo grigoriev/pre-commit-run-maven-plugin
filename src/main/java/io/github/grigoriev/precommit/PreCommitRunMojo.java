@@ -10,6 +10,7 @@ import org.apache.maven.plugins.annotations.Parameter;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Executes a pre-commit hook on specified files.
@@ -32,6 +33,10 @@ import java.util.List;
  *                 <files>
  *                     <file>docs/openapi.json</file>
  *                 </files>
+ *                 <!-- Optional: set environment variables for the pre-commit process -->
+ *                 <environmentVariables>
+ *                     <GIT_CONFIG_PARAMETERS>'core.autocrlf=false'</GIT_CONFIG_PARAMETERS>
+ *                 </environmentVariables>
  *             </configuration>
  *         </execution>
  *     </executions>
@@ -69,6 +74,18 @@ public class PreCommitRunMojo extends AbstractMojo {
 
     @Parameter(property = "precommit.executable", defaultValue = "pre-commit")
     private String preCommitExecutable;
+
+    /**
+     * Additional environment variables to pass to the pre-commit process.
+     * Useful for setting Git configuration, e.g.:
+     * <pre>{@code
+     * <environmentVariables>
+     *     <GIT_CONFIG_PARAMETERS>'core.autocrlf=false'</GIT_CONFIG_PARAMETERS>
+     * </environmentVariables>
+     * }</pre>
+     */
+    @Parameter
+    private Map<String, String> environmentVariables;
 
     private final PreCommitConfigParser configParser;
     private final PreCommitRunner runner;
@@ -176,7 +193,7 @@ public class PreCommitRunMojo extends AbstractMojo {
 
     private void runHookAndHandleResult(List<File> resolvedFiles) throws MojoFailureException {
         logHookStart(resolvedFiles);
-        PreCommitRunner.Result result = runner.runHook(preCommitExecutable, hookId, resolvedFiles, basedir);
+        PreCommitRunner.Result result = runner.runHook(preCommitExecutable, hookId, resolvedFiles, basedir, environmentVariables);
         logOutput(result);
         handleExitCode(result.getExitCode());
     }
@@ -248,5 +265,9 @@ public class PreCommitRunMojo extends AbstractMojo {
 
     void setPreCommitExecutable(String preCommitExecutable) {
         this.preCommitExecutable = preCommitExecutable;
+    }
+
+    void setEnvironmentVariables(Map<String, String> environmentVariables) {
+        this.environmentVariables = environmentVariables;
     }
 }

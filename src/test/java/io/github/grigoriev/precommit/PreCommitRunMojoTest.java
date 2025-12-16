@@ -17,13 +17,16 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -57,7 +60,7 @@ class PreCommitRunMojoTest {
         mojo.execute();
 
         verify(runner, never()).isPreCommitInstalled(anyString());
-        verify(runner, never()).runHook(anyString(), anyString(), anyList(), any(File.class));
+        verify(runner, never()).runHook(anyString(), anyString(), anyList(), any(File.class), any());
     }
 
     @Test
@@ -67,7 +70,7 @@ class PreCommitRunMojoTest {
 
         mojo.execute();
 
-        verify(runner, never()).runHook(anyString(), anyString(), anyList(), any(File.class));
+        verify(runner, never()).runHook(anyString(), anyString(), anyList(), any(File.class), any());
     }
 
     @Test
@@ -88,7 +91,7 @@ class PreCommitRunMojoTest {
         mojo.execute();
 
         verify(configParser, never()).isHookConfigured(any(File.class), anyString());
-        verify(runner, never()).runHook(anyString(), anyString(), anyList(), any(File.class));
+        verify(runner, never()).runHook(anyString(), anyString(), anyList(), any(File.class), any());
     }
 
     @Test
@@ -110,7 +113,7 @@ class PreCommitRunMojoTest {
 
         mojo.execute();
 
-        verify(runner, never()).runHook(anyString(), anyString(), anyList(), any(File.class));
+        verify(runner, never()).runHook(anyString(), anyString(), anyList(), any(File.class), any());
     }
 
     @Test
@@ -134,12 +137,12 @@ class PreCommitRunMojoTest {
         mojo.setFiles(List.of("test.json"));
         when(runner.isPreCommitInstalled("pre-commit")).thenReturn(true);
         when(configParser.isHookConfigured(any(File.class), eq("test-hook"))).thenReturn(true);
-        when(runner.runHook(eq("pre-commit"), eq("test-hook"), anyList(), any(File.class)))
+        when(runner.runHook(eq("pre-commit"), eq("test-hook"), anyList(), any(File.class), isNull()))
                 .thenReturn(new PreCommitRunner.Result(0, output));
 
         mojo.execute();
 
-        verify(runner).runHook(eq("pre-commit"), eq("test-hook"), eq(List.of(targetFile)), any(File.class));
+        verify(runner).runHook(eq("pre-commit"), eq("test-hook"), eq(List.of(targetFile)), any(File.class), isNull());
     }
 
     @Test
@@ -150,13 +153,13 @@ class PreCommitRunMojoTest {
         mojo.setFailOnModification(false);
         when(runner.isPreCommitInstalled("pre-commit")).thenReturn(true);
         when(configParser.isHookConfigured(any(File.class), eq("test-hook"))).thenReturn(true);
-        when(runner.runHook(eq("pre-commit"), eq("test-hook"), anyList(), any(File.class)))
+        when(runner.runHook(eq("pre-commit"), eq("test-hook"), anyList(), any(File.class), isNull()))
                 .thenReturn(new PreCommitRunner.Result(1, "Modified"));
 
         mojo.execute();
 
         // Should not throw
-        verify(runner).runHook(eq("pre-commit"), eq("test-hook"), eq(List.of(targetFile)), any(File.class));
+        verify(runner).runHook(eq("pre-commit"), eq("test-hook"), eq(List.of(targetFile)), any(File.class), isNull());
     }
 
     @Test
@@ -167,7 +170,7 @@ class PreCommitRunMojoTest {
         mojo.setFailOnModification(true);
         when(runner.isPreCommitInstalled("pre-commit")).thenReturn(true);
         when(configParser.isHookConfigured(any(File.class), eq("test-hook"))).thenReturn(true);
-        when(runner.runHook(eq("pre-commit"), eq("test-hook"), anyList(), any(File.class)))
+        when(runner.runHook(eq("pre-commit"), eq("test-hook"), anyList(), any(File.class), isNull()))
                 .thenReturn(new PreCommitRunner.Result(1, "Modified"));
 
         assertThatThrownBy(() -> mojo.execute())
@@ -182,7 +185,7 @@ class PreCommitRunMojoTest {
         mojo.setFiles(List.of("test.json"));
         when(runner.isPreCommitInstalled("pre-commit")).thenReturn(true);
         when(configParser.isHookConfigured(any(File.class), eq("test-hook"))).thenReturn(true);
-        when(runner.runHook(eq("pre-commit"), eq("test-hook"), anyList(), any(File.class)))
+        when(runner.runHook(eq("pre-commit"), eq("test-hook"), anyList(), any(File.class), isNull()))
                 .thenReturn(new PreCommitRunner.Result(2, "Error"));
 
         assertThatThrownBy(() -> mojo.execute())
@@ -199,7 +202,7 @@ class PreCommitRunMojoTest {
 
         mojo.execute();
 
-        verify(runner, never()).runHook(anyString(), anyString(), anyList(), any(File.class));
+        verify(runner, never()).runHook(anyString(), anyString(), anyList(), any(File.class), any());
     }
 
     @Test
@@ -210,12 +213,12 @@ class PreCommitRunMojoTest {
 
         when(runner.isPreCommitInstalled("pre-commit")).thenReturn(true);
         when(configParser.isHookConfigured(any(File.class), eq("test-hook"))).thenReturn(true);
-        when(runner.runHook(eq("pre-commit"), eq("test-hook"), anyList(), any(File.class)))
+        when(runner.runHook(eq("pre-commit"), eq("test-hook"), anyList(), any(File.class), isNull()))
                 .thenReturn(new PreCommitRunner.Result(0, "Passed"));
 
         mojo.execute();
 
-        verify(runner).runHook(eq("pre-commit"), eq("test-hook"), eq(List.of(targetFile)), any(File.class));
+        verify(runner).runHook(eq("pre-commit"), eq("test-hook"), eq(List.of(targetFile)), any(File.class), isNull());
     }
 
     @Test
@@ -227,7 +230,7 @@ class PreCommitRunMojoTest {
 
         mojo.execute();
 
-        verify(runner, never()).runHook(anyString(), anyString(), anyList(), any(File.class));
+        verify(runner, never()).runHook(anyString(), anyString(), anyList(), any(File.class), any());
     }
 
     @Test
@@ -239,7 +242,25 @@ class PreCommitRunMojoTest {
 
         mojo.execute();
 
-        verify(runner, never()).runHook(anyString(), anyString(), anyList(), any(File.class));
+        verify(runner, never()).runHook(anyString(), anyString(), anyList(), any(File.class), any());
+    }
+
+    @Test
+    void execute_shouldPassEnvironmentVariablesToRunner() throws Exception {
+        createConfigFile();
+        File targetFile = createTargetFile("test.json");
+        mojo.setFiles(List.of("test.json"));
+        Map<String, String> envVars = Map.of("GIT_CONFIG_PARAMETERS", "'core.autocrlf=false'");
+        mojo.setEnvironmentVariables(envVars);
+
+        when(runner.isPreCommitInstalled("pre-commit")).thenReturn(true);
+        when(configParser.isHookConfigured(any(File.class), eq("test-hook"))).thenReturn(true);
+        when(runner.runHook(eq("pre-commit"), eq("test-hook"), anyList(), any(File.class), eq(envVars)))
+                .thenReturn(new PreCommitRunner.Result(0, "Passed"));
+
+        mojo.execute();
+
+        verify(runner).runHook(eq("pre-commit"), eq("test-hook"), eq(List.of(targetFile)), any(File.class), eq(envVars));
     }
 
     @Test

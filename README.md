@@ -18,7 +18,7 @@ Maven plugin for running [pre-commit](https://pre-commit.com/) hooks during the 
 <plugin>
     <groupId>io.github.grigoriev</groupId>
     <artifactId>pre-commit-run-maven-plugin</artifactId>
-    <version>0.1.0-SNAPSHOT</version>
+    <version>0.1.1</version>
     <executions>
         <execution>
             <id>format-openapi-json</id>
@@ -37,6 +37,22 @@ Maven plugin for running [pre-commit](https://pre-commit.com/) hooks during the 
 </plugin>
 ```
 
+### With Environment Variables
+
+Useful for controlling Git behavior on Windows (line endings issue):
+
+```xml
+<configuration>
+    <hookId>pretty-format-json</hookId>
+    <files>
+        <file>docs/openapi.json</file>
+    </files>
+    <environmentVariables>
+        <GIT_CONFIG_PARAMETERS>'core.autocrlf=false'</GIT_CONFIG_PARAMETERS>
+    </environmentVariables>
+</configuration>
+```
+
 ## Configuration Options
 
 | Parameter | Default | Description |
@@ -49,6 +65,7 @@ Maven plugin for running [pre-commit](https://pre-commit.com/) hooks during the 
 | `skipIfConfigNotFound` | `true` | Skip if `.pre-commit-config.yaml` doesn't exist |
 | `skipIfNotInstalled` | `true` | Skip if pre-commit is not installed |
 | `preCommitExecutable` | `pre-commit` | Path to pre-commit executable |
+| `environmentVariables` | (none) | Additional environment variables for the pre-commit process |
 
 ## Exit Codes
 

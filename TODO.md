@@ -8,7 +8,7 @@
 
 ### Features
 - [ ] Support glob patterns for files (e.g., `src/**/*.java`)
-- [ ] Support environment variables for subprocess
+- [x] Support environment variables for subprocess
 
 ### Documentation
 - [ ] Add troubleshooting section to README
