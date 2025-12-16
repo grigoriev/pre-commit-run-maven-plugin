@@ -29,8 +29,8 @@
 ## Low Priority
 
 ### Code Quality
-- [ ] Fix double newlines in output handling (`PreCommitRunner.java:128`)
-- [ ] Convert `Result` class to Java record for immutability
+- [x] Fix double newlines in output handling (`PreCommitRunner.java:128`)
+- [x] Convert `Result` class to Java record for immutability
 
 ### Documentation
 - [ ] Add use case examples to README (formatting JSON/YAML, running linters, multi-hook execution)
