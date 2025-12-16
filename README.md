@@ -19,7 +19,7 @@ Maven plugin for running [pre-commit](https://pre-commit.com/) hooks during the 
 <plugin>
     <groupId>io.github.grigoriev</groupId>
     <artifactId>pre-commit-run-maven-plugin</artifactId>
-    <version>0.2.0</version>
+    <version>1.0.0</version>
     <executions>
         <execution>
             <id>format-openapi-json</id>

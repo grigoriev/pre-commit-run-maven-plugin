@@ -6,7 +6,7 @@
 
     <groupId>io.github.grigoriev</groupId>
     <artifactId>pre-commit-run-maven-plugin</artifactId>
-    <version>0.2.1-SNAPSHOT</version>
+    <version>1.0.0-SNAPSHOT</version>
     <packaging>maven-plugin</packaging>
 
     <name>Pre-Commit Run Maven Plugin</name>
