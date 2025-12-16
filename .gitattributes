@@ -1,0 +1,2 @@
+# Ensure test JSON file keeps LF line endings on all platforms
+src/test/resources/integration/*.json text eol=lf

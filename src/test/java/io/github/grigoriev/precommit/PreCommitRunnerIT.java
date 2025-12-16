@@ -7,6 +7,7 @@ import org.junit.jupiter.api.io.TempDir;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
@@ -124,6 +125,37 @@ class PreCommitRunnerIT {
     }
 
     @Test
+    void runHook_shouldNotModifyProperlyFormattedJsonWithLfLineEndings() throws IOException {
+        // Setup
+        initGitRepo();
+        createPreCommitConfig("pretty-format-json");
+
+        // Copy properly formatted JSON from resources (has LF line endings, sorted keys, 2-space indent)
+        File testFile = copyResourceToTempDir("/integration/formatted.json", "formatted.json");
+
+        // Verify file has LF endings before running hook
+        byte[] contentBefore = Files.readAllBytes(testFile.toPath());
+        assertThat(new String(contentBefore, StandardCharsets.UTF_8)).doesNotContain("\r\n");
+
+        // Run the hook
+        PreCommitRunner.Result result = runner.runHook("pre-commit", "pretty-format-json", List.of(testFile), tempDir.toFile());
+
+        // Verify hook passed without modifications (exit code 0 = no changes)
+        assertThat(result.isPassed())
+                .as("Hook should pass without modifications. Output: %s", result.getOutput())
+                .isTrue();
+
+        // Verify file content is exactly the same (including line endings)
+        byte[] contentAfter = Files.readAllBytes(testFile.toPath());
+        assertThat(contentAfter)
+                .as("File content should not be modified")
+                .isEqualTo(contentBefore);
+
+        // Double-check LF endings are preserved
+        assertThat(new String(contentAfter, StandardCharsets.UTF_8)).doesNotContain("\r\n");
+    }
+
+    @Test
     void runHook_shouldRunEndOfFileFixerHook() throws IOException {
         // Setup
         initGitRepo();
@@ -212,5 +244,19 @@ class PreCommitRunnerIT {
         Path filePath = tempDir.resolve(name);
         Files.writeString(filePath, content);
         return filePath.toFile();
+    }
+
+    /**
+     * Copies a resource file to the temp directory, preserving exact byte content (including line endings).
+     */
+    private File copyResourceToTempDir(String resourcePath, String targetName) throws IOException {
+        Path targetPath = tempDir.resolve(targetName);
+        try (var inputStream = getClass().getResourceAsStream(resourcePath)) {
+            if (inputStream == null) {
+                throw new IOException("Resource not found: " + resourcePath);
+            }
+            Files.copy(inputStream, targetPath);
+        }
+        return targetPath.toFile();
     }
 }
