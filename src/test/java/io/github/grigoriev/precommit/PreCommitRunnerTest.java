@@ -2,6 +2,9 @@ package io.github.grigoriev.precommit;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.DisabledOnOs;
+import org.junit.jupiter.api.condition.EnabledOnOs;
+import org.junit.jupiter.api.condition.OS;
 import org.junit.jupiter.api.io.TempDir;
 
 import java.io.File;
@@ -33,12 +36,21 @@ class PreCommitRunnerTest {
     }
 
     @Test
+    @DisabledOnOs(OS.WINDOWS)
     void isPreCommitInstalled_shouldReturnTrueForValidCommand() {
         // 'true' command exists on Unix and always returns 0
         assertThat(runner.isPreCommitInstalled("true")).isTrue();
     }
 
     @Test
+    @EnabledOnOs(OS.WINDOWS)
+    void isPreCommitInstalled_shouldReturnTrueForValidCommand_windows() {
+        // 'cmd /c exit 0' returns 0 on Windows
+        assertThat(runner.isPreCommitInstalled("cmd")).isTrue();
+    }
+
+    @Test
+    @DisabledOnOs(OS.WINDOWS)
     void isPreCommitInstalled_shouldReturnFalseForCommandWithNonZeroExit() {
         // 'false' command exists on Unix and always returns 1
         assertThat(runner.isPreCommitInstalled("false")).isFalse();
@@ -47,6 +59,7 @@ class PreCommitRunnerTest {
     // runHook tests
 
     @Test
+    @DisabledOnOs(OS.WINDOWS)
     void runHook_shouldReturnResultWithOutput() {
         // Use 'echo' as a fake pre-commit that outputs something
         PreCommitRunner.Result result = runner.runHook("echo", "test-hook", List.of(), tempDir.toFile());
@@ -57,6 +70,7 @@ class PreCommitRunnerTest {
     }
 
     @Test
+    @DisabledOnOs(OS.WINDOWS)
     void runHook_shouldPassFilesToCommand() throws IOException {
         File testFile = createTestFile("test.txt");
 
@@ -68,6 +82,7 @@ class PreCommitRunnerTest {
     }
 
     @Test
+    @DisabledOnOs(OS.WINDOWS)
     void runHook_shouldHandleEmptyFilesList() {
         PreCommitRunner.Result result = runner.runHook("echo", "hook-id", List.of(), tempDir.toFile());
 
@@ -76,6 +91,7 @@ class PreCommitRunnerTest {
     }
 
     @Test
+    @DisabledOnOs(OS.WINDOWS)
     void runHook_shouldHandleNullFilesList() {
         PreCommitRunner.Result result = runner.runHook("echo", "hook-id", null, tempDir.toFile());
 
@@ -84,6 +100,7 @@ class PreCommitRunnerTest {
     }
 
     @Test
+    @DisabledOnOs(OS.WINDOWS)
     void runHook_shouldReturnNonZeroExitCode() {
         // 'false' always returns exit code 1
         PreCommitRunner.Result result = runner.runHook("false", "hook-id", List.of(), tempDir.toFile());
@@ -100,6 +117,7 @@ class PreCommitRunnerTest {
     }
 
     @Test
+    @DisabledOnOs(OS.WINDOWS)
     void runHook_shouldHandleMultipleFiles() throws IOException {
         File file1 = createTestFile("file1.txt");
         File file2 = createTestFile("file2.txt");
@@ -160,6 +178,7 @@ class PreCommitRunnerTest {
     // Timeout tests
 
     @Test
+    @DisabledOnOs(OS.WINDOWS)
     void isPreCommitInstalled_shouldReturnFalseOnTimeout() throws IOException {
         // Create a script that ignores arguments and sleeps
         Path script = tempDir.resolve("slow_version.sh");
@@ -174,6 +193,7 @@ class PreCommitRunnerTest {
     }
 
     @Test
+    @DisabledOnOs(OS.WINDOWS)
     void runHook_shouldReturnTimeoutResultOnTimeout() throws IOException {
         // Create a script that sleeps
         Path script = tempDir.resolve("slow_hook.sh");
@@ -191,6 +211,7 @@ class PreCommitRunnerTest {
     // InterruptedException tests
 
     @Test
+    @DisabledOnOs(OS.WINDOWS)
     void isPreCommitInstalled_shouldHandleInterruption() throws Exception {
         Thread testThread = new Thread(() -> {
             Thread.currentThread().interrupt();
@@ -202,6 +223,7 @@ class PreCommitRunnerTest {
     }
 
     @Test
+    @DisabledOnOs(OS.WINDOWS)
     void runHook_shouldHandleInterruption() throws Exception {
         Thread testThread = new Thread(() -> {
             Thread.currentThread().interrupt();

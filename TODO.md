@@ -3,8 +3,8 @@
 ## High Priority
 
 ### Testing
-- [ ] Add integration tests with real pre-commit installation
-- [ ] Add Windows CI/CD testing (current tests use Unix commands)
+- [x] Add integration tests with real pre-commit installation
+- [x] Add Windows CI/CD testing (current tests use Unix commands)
 
 ### Features
 - [ ] Support glob patterns for files (e.g., `src/**/*.java`)
