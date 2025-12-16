@@ -17,7 +17,7 @@
 
 ### Code Quality
 - [ ] Fix silent exception swallowing in `PreCommitConfigParser.java` - add logging or return detailed error info
-- [ ] Fix early return on first missing file in `PreCommitRunMojo.java:148-156` - collect and report all missing files
+- [x] Fix early return on first missing file in `PreCommitRunMojo.java:148-156` - collect and report all missing files
 - [ ] Add configurable timeout parameters to Mojo
 
 ### CI/CD
