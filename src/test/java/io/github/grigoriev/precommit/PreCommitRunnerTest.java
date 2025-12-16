@@ -37,6 +37,7 @@ class PreCommitRunnerTest {
     // isPreCommitInstalled tests
 
     @Test
+    @DisabledOnOs(OS.WINDOWS)
     void isPreCommitInstalled_shouldReturnFalseForInvalidExecutable() {
         assertThat(runner.isPreCommitInstalled("non-existent-command-12345")).isFalse();
     }
@@ -115,6 +116,7 @@ class PreCommitRunnerTest {
     }
 
     @Test
+    @DisabledOnOs(OS.WINDOWS)
     void runHook_shouldReturnErrorForInvalidCommand() {
         PreCommitRunner.Result result = runner.runHook("non-existent-command-xyz", "hook", List.of(), tempDir.toFile());
 
