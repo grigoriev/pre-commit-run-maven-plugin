@@ -13,34 +13,29 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Executes a pre-commit hook on specified files.
+ * Executes pre-commit hooks on specified files.
  *
- * <p>Example usage in pom.xml:</p>
+ * <p>Example usage in pom.xml (single hook):</p>
  * <pre>{@code
- * <plugin>
- *     <groupId>io.github.grigoriev</groupId>
- *     <artifactId>pre-commit-run-maven-plugin</artifactId>
- *     <version>0.1.0-SNAPSHOT</version>
- *     <executions>
- *         <execution>
- *             <id>format-openapi-json</id>
- *             <phase>process-resources</phase>
- *             <goals>
- *                 <goal>run</goal>
- *             </goals>
- *             <configuration>
- *                 <hookId>pretty-format-json</hookId>
- *                 <files>
- *                     <file>docs/openapi.json</file>
- *                 </files>
- *                 <!-- Optional: set environment variables for the pre-commit process -->
- *                 <environmentVariables>
- *                     <GIT_CONFIG_PARAMETERS>'core.autocrlf=false'</GIT_CONFIG_PARAMETERS>
- *                 </environmentVariables>
- *             </configuration>
- *         </execution>
- *     </executions>
- * </plugin>
+ * <configuration>
+ *     <hookId>pretty-format-json</hookId>
+ *     <files>
+ *         <file>docs/openapi.json</file>
+ *     </files>
+ * </configuration>
+ * }</pre>
+ *
+ * <p>Example with multiple hooks:</p>
+ * <pre>{@code
+ * <configuration>
+ *     <hooks>
+ *         <hook>mixed-line-ending</hook>
+ *         <hook>pretty-format-json</hook>
+ *     </hooks>
+ *     <files>
+ *         <file>docs/openapi.json</file>
+ *     </files>
+ * </configuration>
  * }</pre>
  */
 @Mojo(name = "run", defaultPhase = LifecyclePhase.NONE, threadSafe = true)
@@ -51,8 +46,18 @@ public class PreCommitRunMojo extends AbstractMojo {
     @Parameter(defaultValue = "${project.basedir}", readonly = true, required = true)
     private File basedir;
 
-    @Parameter(property = "precommit.hookId", required = true)
+    /**
+     * Single hook ID to run. Use this OR {@code hooks}, not both.
+     */
+    @Parameter(property = "precommit.hookId")
     private String hookId;
+
+    /**
+     * List of hook IDs to run sequentially. Use this OR {@code hookId}, not both.
+     * Hooks are executed in the order specified.
+     */
+    @Parameter(property = "precommit.hooks")
+    private List<String> hooks;
 
     @Parameter(property = "precommit.files")
     private List<String> files;
@@ -107,6 +112,11 @@ public class PreCommitRunMojo extends AbstractMojo {
             return;
         }
 
+        List<String> effectiveHooks = getEffectiveHooks();
+        if (effectiveHooks.isEmpty()) {
+            throw new MojoExecutionException("Either 'hookId' or 'hooks' must be specified");
+        }
+
         if (!checkPreCommitInstalled()) {
             return;
         }
@@ -116,7 +126,8 @@ public class PreCommitRunMojo extends AbstractMojo {
             return;
         }
 
-        if (!checkHookConfigured(configFile)) {
+        List<String> configuredHooks = filterConfiguredHooks(configFile, effectiveHooks);
+        if (configuredHooks.isEmpty()) {
             return;
         }
 
@@ -125,7 +136,17 @@ public class PreCommitRunMojo extends AbstractMojo {
             return;
         }
 
-        runHookAndHandleResult(resolvedFiles);
+        runHooksAndHandleResults(configuredHooks, resolvedFiles);
+    }
+
+    private List<String> getEffectiveHooks() {
+        if (hooks != null && !hooks.isEmpty()) {
+            return hooks;
+        }
+        if (hookId != null && !hookId.isEmpty()) {
+            return List.of(hookId);
+        }
+        return List.of();
     }
 
     private boolean checkPreCommitInstalled() throws MojoFailureException {
@@ -151,15 +172,28 @@ public class PreCommitRunMojo extends AbstractMojo {
         throw new MojoFailureException(".pre-commit-config.yaml not found in " + basedir);
     }
 
-    private boolean checkHookConfigured(File configFile) throws MojoFailureException {
-        if (configParser.isHookConfigured(configFile, hookId)) {
-            return true;
+    private List<String> filterConfiguredHooks(File configFile, List<String> hooksToCheck) throws MojoFailureException {
+        List<String> configuredHooks = new ArrayList<>();
+        List<String> missingHooks = new ArrayList<>();
+
+        for (String hook : hooksToCheck) {
+            if (configParser.isHookConfigured(configFile, hook)) {
+                configuredHooks.add(hook);
+            } else {
+                missingHooks.add(hook);
+            }
         }
-        if (skipIfHookNotFound) {
-            getLog().info(HOOK_PREFIX + hookId + "' not found in .pre-commit-config.yaml, skipping execution");
-            return false;
+
+        if (!missingHooks.isEmpty()) {
+            String missingList = String.join(", ", missingHooks);
+            if (skipIfHookNotFound) {
+                getLog().info("Hook(s) not found in .pre-commit-config.yaml, skipping: " + missingList);
+            } else {
+                throw new MojoFailureException("Hook(s) not found in .pre-commit-config.yaml: " + missingList);
+            }
         }
-        throw new MojoFailureException(HOOK_PREFIX + hookId + "' not found in .pre-commit-config.yaml");
+
+        return configuredHooks;
     }
 
     private List<File> resolveAndValidateFiles() {
@@ -191,15 +225,17 @@ public class PreCommitRunMojo extends AbstractMojo {
                 .toList();
     }
 
-    private void runHookAndHandleResult(List<File> resolvedFiles) throws MojoFailureException {
-        logHookStart(resolvedFiles);
-        PreCommitRunner.Result result = runner.runHook(preCommitExecutable, hookId, resolvedFiles, basedir, environmentVariables);
-        logOutput(result);
-        handleExitCode(result.getExitCode());
+    private void runHooksAndHandleResults(List<String> hooksToRun, List<File> resolvedFiles) throws MojoFailureException {
+        for (String hook : hooksToRun) {
+            runSingleHook(hook, resolvedFiles);
+        }
     }
 
-    private void logHookStart(List<File> resolvedFiles) {
-        getLog().info("Running pre-commit hook '" + hookId + "' on " + resolvedFiles.size() + " file(s)");
+    private void runSingleHook(String hook, List<File> resolvedFiles) throws MojoFailureException {
+        getLog().info("Running pre-commit hook '" + hook + "' on " + resolvedFiles.size() + " file(s)");
+        PreCommitRunner.Result result = runner.runHook(preCommitExecutable, hook, resolvedFiles, basedir, environmentVariables);
+        logOutput(result);
+        handleExitCode(hook, result.getExitCode());
     }
 
     private void logOutput(PreCommitRunner.Result result) {
@@ -211,24 +247,24 @@ public class PreCommitRunMojo extends AbstractMojo {
         }
     }
 
-    private void handleExitCode(int exitCode) throws MojoFailureException {
+    private void handleExitCode(String hook, int exitCode) throws MojoFailureException {
         if (exitCode == 0) {
-            getLog().info(HOOK_PREFIX + hookId + "' passed (no changes needed)");
+            getLog().info(HOOK_PREFIX + hook + "' passed (no changes needed)");
             return;
         }
         if (exitCode == 1) {
-            handleModification();
+            handleModification(hook);
             return;
         }
-        throw new MojoFailureException(HOOK_PREFIX + hookId + "' failed with exit code " + exitCode);
+        throw new MojoFailureException(HOOK_PREFIX + hook + "' failed with exit code " + exitCode);
     }
 
-    private void handleModification() throws MojoFailureException {
+    private void handleModification(String hook) throws MojoFailureException {
         if (failOnModification) {
-            throw new MojoFailureException(HOOK_PREFIX + hookId + "' modified files. " +
+            throw new MojoFailureException(HOOK_PREFIX + hook + "' modified files. " +
                     "Review the changes and commit them, or set failOnModification=false");
         }
-        getLog().info(HOOK_PREFIX + hookId + "' modified files");
+        getLog().info(HOOK_PREFIX + hook + "' modified files");
     }
 
     void setBasedir(File basedir) {
@@ -237,6 +273,10 @@ public class PreCommitRunMojo extends AbstractMojo {
 
     void setHookId(String hookId) {
         this.hookId = hookId;
+    }
+
+    void setHooks(List<String> hooks) {
+        this.hooks = hooks;
     }
 
     void setFiles(List<String> files) {

@@ -37,6 +37,24 @@ Maven plugin for running [pre-commit](https://pre-commit.com/) hooks during the 
 </plugin>
 ```
 
+### Multiple Hooks
+
+Run multiple hooks sequentially on the same files:
+
+```xml
+<configuration>
+    <hooks>
+        <hook>mixed-line-ending</hook>
+        <hook>pretty-format-json</hook>
+    </hooks>
+    <files>
+        <file>docs/openapi.json</file>
+    </files>
+</configuration>
+```
+
+Hooks are executed in order. If any hook fails, subsequent hooks are skipped.
+
 ### With Environment Variables
 
 Useful for controlling Git behavior on Windows (line endings issue):
@@ -57,7 +75,8 @@ Useful for controlling Git behavior on Windows (line endings issue):
 
 | Parameter | Default | Description |
 |-----------|---------|-------------|
-| `hookId` | (required) | The pre-commit hook ID to run |
+| `hookId` | - | Single hook ID to run (use this OR `hooks`) |
+| `hooks` | - | List of hook IDs to run sequentially (use this OR `hookId`) |
 | `files` | (required) | List of files to run the hook on (relative to project root) |
 | `skip` | `false` | Skip execution entirely |
 | `failOnModification` | `false` | Fail the build if the hook modifies files |

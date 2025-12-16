@@ -9,6 +9,7 @@
 ### Features
 - [ ] Support glob patterns for files (e.g., `src/**/*.java`)
 - [x] Support environment variables for subprocess
+- [x] Support multiple hooks in single execution (`<hooks>` parameter)
 
 ### Documentation
 - [ ] Add troubleshooting section to README
@@ -33,5 +34,5 @@
 - [x] Convert `Result` class to Java record for immutability
 
 ### Documentation
-- [ ] Add use case examples to README (formatting JSON/YAML, running linters, multi-hook execution)
+- [x] Add use case examples to README (formatting JSON/YAML, running linters, multi-hook execution)
 - [ ] Add performance documentation (timeout defaults, tuning guidance)
