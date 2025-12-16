@@ -8,7 +8,7 @@ import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 
 import java.io.File;
-import java.util.Collections;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -147,13 +147,22 @@ public class PreCommitRunMojo extends AbstractMojo {
 
     private List<File> resolveAndValidateFiles() {
         List<File> resolvedFiles = resolveFiles();
+        List<File> existingFiles = new ArrayList<>();
+        List<String> missingFiles = new ArrayList<>();
+
         for (File file : resolvedFiles) {
-            if (!file.exists()) {
-                getLog().info("File not found: " + file.getPath() + ", skipping");
-                return Collections.emptyList();
+            if (file.exists()) {
+                existingFiles.add(file);
+            } else {
+                missingFiles.add(file.getPath());
             }
         }
-        return resolvedFiles;
+
+        if (!missingFiles.isEmpty()) {
+            getLog().warn("Files not found: " + String.join(", ", missingFiles));
+        }
+
+        return existingFiles;
     }
 
     private List<File> resolveFiles() {

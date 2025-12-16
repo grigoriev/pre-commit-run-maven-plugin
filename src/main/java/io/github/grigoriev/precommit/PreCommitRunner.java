@@ -93,7 +93,7 @@ public class PreCommitRunner {
                 return new Result(-1, "Process timed out after " + timeoutSeconds + " seconds");
             }
 
-            return new Result(process.exitValue(), output.toString().trim());
+            return new Result(process.exitValue(), output.toString());
         } catch (IOException e) {
             return new Result(-1, "Failed to execute pre-commit: " + e.getMessage());
         } catch (InterruptedException e) {
@@ -125,24 +125,23 @@ public class PreCommitRunner {
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream))) {
             String line;
             while ((line = reader.readLine()) != null) {
-                output.append(line).append("\n");
+                if (!output.isEmpty()) {
+                    output.append(System.lineSeparator());
+                }
+                output.append(line);
             }
         } catch (IOException e) {
-            output.append("Error reading output: ").append(e.getMessage()).append("\n");
+            output.append("Error reading output: ").append(e.getMessage());
         }
     }
 
     /**
      * Result of a pre-commit hook execution.
+     *
+     * @param exitCode the process exit code
+     * @param output   the process output
      */
-    public static class Result {
-        private final int exitCode;
-        private final String output;
-
-        public Result(int exitCode, String output) {
-            this.exitCode = exitCode;
-            this.output = output;
-        }
+    public record Result(int exitCode, String output) {
 
         public int getExitCode() {
             return exitCode;
