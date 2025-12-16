@@ -2,6 +2,9 @@ package io.github.grigoriev.precommit;
 
 import org.junit.jupiter.api.Test;
 
+import java.io.IOException;
+import java.io.InputStream;
+
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
@@ -52,5 +55,21 @@ class PreCommitRunnerResultTest {
 
         assertThat(result.getExitCode()).isEqualTo(42);
         assertThat(result.getOutput()).isEqualTo("test output");
+    }
+
+    @Test
+    void readProcessOutput_shouldHandleIOException() {
+        InputStream failingStream = new InputStream() {
+            @Override
+            public int read() throws IOException {
+                throw new IOException("Test IO error");
+            }
+        };
+        StringBuilder output = new StringBuilder();
+
+        new PreCommitRunner().readProcessOutput(failingStream, output);
+
+        assertThat(output.toString()).contains("Error reading output");
+        assertThat(output.toString()).contains("Test IO error");
     }
 }
