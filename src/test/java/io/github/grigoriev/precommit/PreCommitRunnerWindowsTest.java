@@ -1,11 +1,10 @@
 package io.github.grigoriev.precommit;
 
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledOnOs;
 import org.junit.jupiter.api.condition.OS;
-import org.junit.jupiter.api.io.TempDir;
 
 import java.io.File;
 import java.io.IOException;
@@ -24,18 +23,43 @@ import static org.assertj.core.api.Assertions.assertThat;
 /**
  * Tests for PreCommitRunner that use Windows-specific commands.
  * These tests only run on Windows.
+ * <p>
+ * Note: Uses manual temp directory management with deleteOnExit() instead of @TempDir
+ * because Windows processes may hold file locks preventing immediate cleanup.
  */
 @EnabledOnOs(OS.WINDOWS)
 class PreCommitRunnerWindowsTest {
 
     private PreCommitRunner runner;
-
-    @TempDir
-    Path tempDir;
+    private Path tempDir;
 
     @BeforeEach
-    void setUp() {
+    void setUp() throws IOException {
         runner = new PreCommitRunner();
+        tempDir = Files.createTempDirectory("precommit-test-");
+        // Schedule deletion on JVM exit to avoid file lock issues
+        tempDir.toFile().deleteOnExit();
+    }
+
+    @AfterEach
+    void tearDown() {
+        // Best-effort cleanup - ignore failures due to file locks
+        if (tempDir != null) {
+            tryDeleteRecursively(tempDir.toFile());
+        }
+    }
+
+    private void tryDeleteRecursively(File file) {
+        if (file.isDirectory()) {
+            File[] children = file.listFiles();
+            if (children != null) {
+                for (File child : children) {
+                    tryDeleteRecursively(child);
+                }
+            }
+        }
+        // Ignore deletion failures - deleteOnExit will handle it
+        file.delete();
     }
 
     // isPreCommitInstalled tests
@@ -70,17 +94,13 @@ class PreCommitRunnerWindowsTest {
     }
 
     // Timeout tests
-    // Note: Timeout tests are disabled on Windows because:
-    // 1. destroyForcibly() does not reliably kill child processes (ping, powershell)
-    // 2. This causes file lock issues when JUnit tries to clean up @TempDir
-    // The timeout functionality is tested on Unix platforms in PreCommitRunnerTest
 
-    @Disabled("Windows process cleanup issues cause unreliable test behavior and temp directory locks")
     @Test
     void isPreCommitInstalled_shouldReturnFalseOnTimeout() throws IOException {
         // Create a batch script that sleeps using ping
         Path script = tempDir.resolve("slow_version.bat");
         Files.writeString(script, "@echo off\nping -n 11 127.0.0.1 > nul\n");
+        script.toFile().deleteOnExit();
 
         PreCommitRunner shortTimeoutRunner = new PreCommitRunner(1, 1);
 
@@ -89,12 +109,12 @@ class PreCommitRunnerWindowsTest {
         assertThat(result).isFalse();
     }
 
-    @Disabled("Windows process cleanup issues cause unreliable test behavior and temp directory locks")
     @Test
     void runHook_shouldReturnTimeoutResultOnTimeout() throws IOException {
         // Create a batch script that sleeps using ping
         Path script = tempDir.resolve("slow_hook.bat");
         Files.writeString(script, "@echo off\nping -n 11 127.0.0.1 > nul\n");
+        script.toFile().deleteOnExit();
 
         PreCommitRunner shortTimeoutRunner = new PreCommitRunner(1, 1);
 
@@ -132,6 +152,7 @@ class PreCommitRunnerWindowsTest {
     private File createTestFile(String name) throws IOException {
         Path filePath = tempDir.resolve(name);
         Files.writeString(filePath, "test content");
+        filePath.toFile().deleteOnExit();
         return filePath.toFile();
     }
 
