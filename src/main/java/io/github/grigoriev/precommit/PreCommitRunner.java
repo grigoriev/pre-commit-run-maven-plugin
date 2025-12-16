@@ -42,13 +42,17 @@ public class PreCommitRunner {
             pb.redirectErrorStream(true);
             Process process = pb.start();
 
-            drainStream(process.getInputStream());
+            // Drain stream in background thread to prevent blocking
+            Thread drainThread = new Thread(() -> drainStream(process.getInputStream()));
+            drainThread.start();
 
             boolean finished = process.waitFor(installCheckTimeoutSeconds, TimeUnit.SECONDS);
             if (!finished) {
                 process.destroyForcibly();
+                drainThread.join(1000);
                 return false;
             }
+            drainThread.join(1000);
             return process.exitValue() == 0;
         } catch (IOException e) {
             return false;
@@ -58,8 +62,12 @@ public class PreCommitRunner {
         }
     }
 
-    private void drainStream(InputStream inputStream) throws IOException {
-        inputStream.transferTo(OutputStream.nullOutputStream());
+    private void drainStream(InputStream inputStream) {
+        try {
+            inputStream.transferTo(OutputStream.nullOutputStream());
+        } catch (IOException e) {
+            // Ignore - process may have been killed
+        }
     }
 
     /**
