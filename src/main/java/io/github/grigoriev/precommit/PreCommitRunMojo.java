@@ -15,17 +15,7 @@ import java.util.Map;
 /**
  * Executes pre-commit hooks on specified files.
  *
- * <p>Example usage in pom.xml (single hook):</p>
- * <pre>{@code
- * <configuration>
- *     <hookId>pretty-format-json</hookId>
- *     <files>
- *         <file>docs/openapi.json</file>
- *     </files>
- * </configuration>
- * }</pre>
- *
- * <p>Example with multiple hooks:</p>
+ * <p>Example usage in pom.xml:</p>
  * <pre>{@code
  * <configuration>
  *     <hooks>
@@ -47,13 +37,7 @@ public class PreCommitRunMojo extends AbstractMojo {
     private File basedir;
 
     /**
-     * Single hook ID to run. Use this OR {@code hooks}, not both.
-     */
-    @Parameter(property = "precommit.hookId")
-    private String hookId;
-
-    /**
-     * List of hook IDs to run sequentially. Use this OR {@code hookId}, not both.
+     * List of hook IDs to run sequentially.
      * Hooks are executed in the order specified.
      */
     @Parameter(property = "precommit.hooks")
@@ -114,7 +98,7 @@ public class PreCommitRunMojo extends AbstractMojo {
 
         List<String> effectiveHooks = getEffectiveHooks();
         if (effectiveHooks.isEmpty()) {
-            throw new MojoExecutionException("Either 'hookId' or 'hooks' must be specified");
+            throw new MojoExecutionException("'hooks' must be specified");
         }
 
         if (!checkPreCommitInstalled()) {
@@ -142,9 +126,6 @@ public class PreCommitRunMojo extends AbstractMojo {
     private List<String> getEffectiveHooks() {
         if (hooks != null && !hooks.isEmpty()) {
             return hooks;
-        }
-        if (hookId != null && !hookId.isEmpty()) {
-            return List.of(hookId);
         }
         return List.of();
     }
@@ -269,10 +250,6 @@ public class PreCommitRunMojo extends AbstractMojo {
 
     void setBasedir(File basedir) {
         this.basedir = basedir;
-    }
-
-    void setHookId(String hookId) {
-        this.hookId = hookId;
     }
 
     void setHooks(List<String> hooks) {

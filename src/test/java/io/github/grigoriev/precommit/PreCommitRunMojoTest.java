@@ -48,7 +48,7 @@ class PreCommitRunMojoTest {
     void setUp() {
         mojo = new PreCommitRunMojo(configParser, runner);
         mojo.setBasedir(tempDir.toFile());
-        mojo.setHookId("test-hook");
+        mojo.setHooks(List.of("test-hook"));
         mojo.setPreCommitExecutable("pre-commit");
     }
 
@@ -267,7 +267,6 @@ class PreCommitRunMojoTest {
     void execute_shouldRunMultipleHooksSequentially() throws Exception {
         createConfigFile();
         File targetFile = createTargetFile("test.json");
-        mojo.setHookId(null);
         mojo.setHooks(List.of("hook1", "hook2", "hook3"));
         mojo.setFiles(List.of("test.json"));
 
@@ -289,7 +288,6 @@ class PreCommitRunMojoTest {
     void execute_shouldSkipMissingHooksWhenConfigured() throws Exception {
         createConfigFile();
         createTargetFile("test.json");
-        mojo.setHookId(null);
         mojo.setHooks(List.of("hook1", "missing-hook", "hook2"));
         mojo.setFiles(List.of("test.json"));
         mojo.setSkipIfHookNotFound(true);
@@ -313,7 +311,6 @@ class PreCommitRunMojoTest {
     void execute_shouldStopOnFirstFailingHook() throws Exception {
         createConfigFile();
         createTargetFile("test.json");
-        mojo.setHookId(null);
         mojo.setHooks(List.of("hook1", "hook2"));
         mojo.setFiles(List.of("test.json"));
 
@@ -333,50 +330,20 @@ class PreCommitRunMojoTest {
 
     @Test
     void execute_shouldFailWhenNoHooksSpecified() {
-        mojo.setHookId(null);
         mojo.setHooks(null);
 
         assertThatThrownBy(() -> mojo.execute())
                 .isInstanceOf(MojoExecutionException.class)
-                .hasMessageContaining("Either 'hookId' or 'hooks' must be specified");
+                .hasMessageContaining("'hooks' must be specified");
     }
 
     @Test
-    void execute_shouldFailWhenEmptyHooksAndNullHookId() {
-        mojo.setHookId(null);
+    void execute_shouldFailWhenEmptyHooks() {
         mojo.setHooks(List.of());
 
         assertThatThrownBy(() -> mojo.execute())
                 .isInstanceOf(MojoExecutionException.class)
-                .hasMessageContaining("Either 'hookId' or 'hooks' must be specified");
-    }
-
-    @Test
-    void execute_shouldFailWhenEmptyHookIdAndNullHooks() {
-        mojo.setHookId("");
-        mojo.setHooks(null);
-
-        assertThatThrownBy(() -> mojo.execute())
-                .isInstanceOf(MojoExecutionException.class)
-                .hasMessageContaining("Either 'hookId' or 'hooks' must be specified");
-    }
-
-    @Test
-    void execute_shouldFallbackToHookIdWhenHooksIsEmpty() throws Exception {
-        createConfigFile();
-        File targetFile = createTargetFile("test.json");
-        mojo.setHookId("fallback-hook");
-        mojo.setHooks(List.of());
-        mojo.setFiles(List.of("test.json"));
-
-        when(runner.isPreCommitInstalled("pre-commit")).thenReturn(true);
-        when(configParser.isHookConfigured(any(File.class), eq("fallback-hook"))).thenReturn(true);
-        when(runner.runHook(eq("pre-commit"), eq("fallback-hook"), anyList(), any(File.class), isNull()))
-                .thenReturn(new PreCommitRunner.Result(0, "Passed"));
-
-        mojo.execute();
-
-        verify(runner).runHook(eq("pre-commit"), eq("fallback-hook"), eq(List.of(targetFile)), any(File.class), isNull());
+                .hasMessageContaining("'hooks' must be specified");
     }
 
     @Test
@@ -395,25 +362,6 @@ class PreCommitRunMojoTest {
         mojo.execute();
 
         verify(runner).runHook(eq("pre-commit"), eq("test-hook"), eq(List.of(targetFile)), any(File.class), eq(emptyEnvVars));
-    }
-
-    @Test
-    void execute_shouldPreferHooksOverHookId() throws Exception {
-        createConfigFile();
-        File targetFile = createTargetFile("test.json");
-        mojo.setHookId("ignored-hook");
-        mojo.setHooks(List.of("preferred-hook"));
-        mojo.setFiles(List.of("test.json"));
-
-        when(runner.isPreCommitInstalled("pre-commit")).thenReturn(true);
-        when(configParser.isHookConfigured(any(File.class), eq("preferred-hook"))).thenReturn(true);
-        when(runner.runHook(eq("pre-commit"), eq("preferred-hook"), anyList(), any(File.class), isNull()))
-                .thenReturn(new PreCommitRunner.Result(0, "Passed"));
-
-        mojo.execute();
-
-        verify(runner).runHook(eq("pre-commit"), eq("preferred-hook"), eq(List.of(targetFile)), any(File.class), isNull());
-        verify(runner, never()).runHook(eq("pre-commit"), eq("ignored-hook"), anyList(), any(File.class), isNull());
     }
 
     @Test

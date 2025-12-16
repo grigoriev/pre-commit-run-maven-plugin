@@ -27,7 +27,10 @@ Maven plugin for running [pre-commit](https://pre-commit.com/) hooks during the 
                 <goal>run</goal>
             </goals>
             <configuration>
-                <hookId>pretty-format-json</hookId>
+                <hooks>
+                    <hook>mixed-line-ending</hook>
+                    <hook>pretty-format-json</hook>
+                </hooks>
                 <files>
                     <file>docs/openapi.json</file>
                 </files>
@@ -35,22 +38,6 @@ Maven plugin for running [pre-commit](https://pre-commit.com/) hooks during the 
         </execution>
     </executions>
 </plugin>
-```
-
-### Multiple Hooks
-
-Run multiple hooks sequentially on the same files:
-
-```xml
-<configuration>
-    <hooks>
-        <hook>mixed-line-ending</hook>
-        <hook>pretty-format-json</hook>
-    </hooks>
-    <files>
-        <file>docs/openapi.json</file>
-    </files>
-</configuration>
 ```
 
 Hooks are executed in order. If any hook fails, subsequent hooks are skipped.
@@ -61,7 +48,9 @@ Useful for controlling Git behavior on Windows (line endings issue):
 
 ```xml
 <configuration>
-    <hookId>pretty-format-json</hookId>
+    <hooks>
+        <hook>pretty-format-json</hook>
+    </hooks>
     <files>
         <file>docs/openapi.json</file>
     </files>
@@ -75,8 +64,7 @@ Useful for controlling Git behavior on Windows (line endings issue):
 
 | Parameter | Default | Description |
 |-----------|---------|-------------|
-| `hookId` | - | Single hook ID to run (use this OR `hooks`) |
-| `hooks` | - | List of hook IDs to run sequentially (use this OR `hookId`) |
+| `hooks` | (required) | List of hook IDs to run sequentially |
 | `files` | (required) | List of files to run the hook on (relative to project root) |
 | `skip` | `false` | Skip execution entirely |
 | `failOnModification` | `false` | Fail the build if the hook modifies files |
