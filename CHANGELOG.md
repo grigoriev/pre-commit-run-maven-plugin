@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.0.0] - 2024-12-16
 
 ### Added
+- Support for glob patterns in file paths (e.g., `src/**/*.java`)
 - Support for hook aliases - run hooks by alias instead of ID
 - Integration tests for line ending handling
 

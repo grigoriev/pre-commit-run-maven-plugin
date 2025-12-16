@@ -24,6 +24,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.never;
@@ -369,6 +370,81 @@ class PreCommitRunMojoTest {
         PreCommitRunMojo defaultMojo = new PreCommitRunMojo();
         // Just verify it doesn't throw
         assertThat(defaultMojo).isNotNull();
+    }
+
+    // Glob pattern tests
+
+    @Test
+    void isGlobPattern_shouldDetectGlobPatterns() {
+        assertThat(mojo.isGlobPattern("src/**/*.java")).isTrue();
+        assertThat(mojo.isGlobPattern("*.json")).isTrue();
+        assertThat(mojo.isGlobPattern("file?.txt")).isTrue();
+        assertThat(mojo.isGlobPattern("file[0-9].txt")).isTrue();
+        assertThat(mojo.isGlobPattern("docs/openapi.json")).isFalse();
+        assertThat(mojo.isGlobPattern("src/main/java/File.java")).isFalse();
+    }
+
+    @Test
+    void execute_shouldExpandGlobPatterns() throws Exception {
+        createConfigFile();
+        // Create multiple files matching the glob pattern
+        createTargetFile("src/main/java/File1.java");
+        createTargetFile("src/main/java/File2.java");
+        createTargetFile("src/test/java/Test1.java");
+        createTargetFile("docs/readme.md"); // Should not match
+
+        mojo.setFiles(List.of("src/**/*.java"));
+
+        when(runner.isPreCommitInstalled("pre-commit")).thenReturn(true);
+        when(configParser.isHookConfigured(any(File.class), eq("test-hook"))).thenReturn(true);
+        when(runner.runHook(eq("pre-commit"), eq("test-hook"), anyList(), any(File.class), isNull()))
+                .thenReturn(new PreCommitRunner.Result(0, "Passed"));
+
+        mojo.execute();
+
+        // Verify that 3 Java files were found and passed to the hook
+        verify(runner).runHook(eq("pre-commit"), eq("test-hook"), argThat(files ->
+                files.size() == 3 &&
+                files.stream().allMatch(f -> f.getName().endsWith(".java"))
+        ), any(File.class), isNull());
+    }
+
+    @Test
+    void execute_shouldHandleMixedGlobAndRegularPaths() throws Exception {
+        createConfigFile();
+        File specificFile = createTargetFile("docs/openapi.json");
+        createTargetFile("src/File1.java");
+        createTargetFile("src/File2.java");
+
+        mojo.setFiles(List.of("docs/openapi.json", "src/*.java"));
+
+        when(runner.isPreCommitInstalled("pre-commit")).thenReturn(true);
+        when(configParser.isHookConfigured(any(File.class), eq("test-hook"))).thenReturn(true);
+        when(runner.runHook(eq("pre-commit"), eq("test-hook"), anyList(), any(File.class), isNull()))
+                .thenReturn(new PreCommitRunner.Result(0, "Passed"));
+
+        mojo.execute();
+
+        // Verify that both the specific file and glob-matched files are included
+        verify(runner).runHook(eq("pre-commit"), eq("test-hook"), argThat(files ->
+                files.size() == 3 &&
+                files.contains(specificFile)
+        ), any(File.class), isNull());
+    }
+
+    @Test
+    void execute_shouldHandleGlobPatternWithNoMatches() throws Exception {
+        createConfigFile();
+
+        mojo.setFiles(List.of("nonexistent/**/*.xyz"));
+
+        when(runner.isPreCommitInstalled("pre-commit")).thenReturn(true);
+        when(configParser.isHookConfigured(any(File.class), eq("test-hook"))).thenReturn(true);
+
+        mojo.execute();
+
+        // No files should be passed to runner since glob matched nothing
+        verify(runner, never()).runHook(anyString(), anyString(), anyList(), any(File.class), any());
     }
 
     private void createConfigFile() throws IOException {

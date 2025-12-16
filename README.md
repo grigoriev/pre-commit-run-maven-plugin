@@ -8,6 +8,7 @@ Maven plugin for running [pre-commit](https://pre-commit.com/) hooks during the 
 ## Features
 
 - Run any pre-commit hook on specified files at any Maven build phase
+- Support for glob patterns in file paths (e.g., `src/**/*.java`)
 - Support for hook aliases (run hooks by alias instead of ID)
 - Graceful degradation when pre-commit is not installed
 - Configurable behavior for file modifications
@@ -42,6 +43,28 @@ Maven plugin for running [pre-commit](https://pre-commit.com/) hooks during the 
 ```
 
 Hooks are executed in order. If any hook fails, subsequent hooks are skipped.
+
+### Using Glob Patterns
+
+You can use glob patterns to match multiple files:
+
+```xml
+<configuration>
+    <hooks>
+        <hook>trailing-whitespace</hook>
+    </hooks>
+    <files>
+        <file>src/**/*.java</file>
+        <file>docs/*.md</file>
+    </files>
+</configuration>
+```
+
+Supported glob patterns:
+- `*` - matches any characters except path separator
+- `**` - matches any characters including path separators (recursive)
+- `?` - matches a single character
+- `[abc]` - matches any character in brackets
 
 ### Using Hook Aliases
 
@@ -98,7 +121,7 @@ Useful for controlling Git behavior on Windows (line endings issue):
 | Parameter | Default | Description |
 |-----------|---------|-------------|
 | `hooks` | (required) | List of hook IDs or aliases to run sequentially |
-| `files` | (required) | List of files to run the hook on (relative to project root) |
+| `files` | (required) | List of files or glob patterns to run the hook on (relative to project root) |
 | `skip` | `false` | Skip execution entirely |
 | `failOnModification` | `false` | Fail the build if the hook modifies files |
 | `skipIfHookNotFound` | `true` | Skip if hook is not in `.pre-commit-config.yaml` |

@@ -7,7 +7,7 @@
 - [x] Add Windows CI/CD testing (current tests use Unix commands)
 
 ### Features
-- [ ] Support glob patterns for files (e.g., `src/**/*.java`)
+- [x] Support glob patterns for files (e.g., `src/**/*.java`)
 - [x] Support environment variables for subprocess
 - [x] Support multiple hooks in single execution (`<hooks>` parameter)
 

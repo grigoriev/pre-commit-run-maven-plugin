@@ -8,6 +8,14 @@ import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 
 import java.io.File;
+import java.io.IOException;
+import java.nio.file.FileSystems;
+import java.nio.file.FileVisitResult;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.PathMatcher;
+import java.nio.file.SimpleFileVisitor;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -201,9 +209,50 @@ public class PreCommitRunMojo extends AbstractMojo {
         if (files == null || files.isEmpty()) {
             return List.of();
         }
-        return files.stream()
-                .map(path -> new File(basedir, path))
-                .toList();
+        List<File> resolvedFiles = new ArrayList<>();
+        for (String pattern : files) {
+            if (isGlobPattern(pattern)) {
+                resolvedFiles.addAll(expandGlobPattern(pattern));
+            } else {
+                resolvedFiles.add(new File(basedir, pattern));
+            }
+        }
+        return resolvedFiles;
+    }
+
+    boolean isGlobPattern(String path) {
+        return path.contains("*") || path.contains("?") || path.contains("[");
+    }
+
+    private List<File> expandGlobPattern(String pattern) {
+        List<File> matchedFiles = new ArrayList<>();
+        Path startDir = basedir.toPath();
+
+        // Convert pattern to glob syntax
+        String globPattern = "glob:" + pattern;
+        PathMatcher matcher = FileSystems.getDefault().getPathMatcher(globPattern);
+
+        try {
+            Files.walkFileTree(startDir, new SimpleFileVisitor<>() {
+                @Override
+                public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) {
+                    Path relativePath = startDir.relativize(file);
+                    if (matcher.matches(relativePath)) {
+                        matchedFiles.add(file.toFile());
+                    }
+                    return FileVisitResult.CONTINUE;
+                }
+
+                @Override
+                public FileVisitResult visitFileFailed(Path file, IOException exc) {
+                    return FileVisitResult.CONTINUE;
+                }
+            });
+        } catch (IOException e) {
+            getLog().warn("Failed to expand glob pattern: " + pattern + " - " + e.getMessage());
+        }
+
+        return matchedFiles;
     }
 
     private void runHooksAndHandleResults(List<String> hooksToRun, List<File> resolvedFiles) throws MojoFailureException {
