@@ -49,7 +49,7 @@ mvn package -DskipTests
 ### Plugin Configuration Options
 
 Key parameters in `PreCommitRunMojo`:
-- `hooks` (required) - List of pre-commit hook IDs to run sequentially
+- `hooks` (required) - List of pre-commit hook IDs or aliases to run sequentially
 - `files` (required) - List of files to run the hook on (relative paths). Execution skipped if empty.
 - `failOnModification` - Whether to fail build when hook modifies files (default: false)
 - `skipIfHookNotFound`, `skipIfConfigNotFound`, `skipIfNotInstalled` - Graceful degradation options (default: true)

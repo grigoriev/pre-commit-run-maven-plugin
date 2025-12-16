@@ -8,6 +8,7 @@ Maven plugin for running [pre-commit](https://pre-commit.com/) hooks during the 
 ## Features
 
 - Run any pre-commit hook on specified files at any Maven build phase
+- Support for hook aliases (run hooks by alias instead of ID)
 - Graceful degradation when pre-commit is not installed
 - Configurable behavior for file modifications
 - Validates hook existence in `.pre-commit-config.yaml`
@@ -42,6 +43,38 @@ Maven plugin for running [pre-commit](https://pre-commit.com/) hooks during the 
 
 Hooks are executed in order. If any hook fails, subsequent hooks are skipped.
 
+### Using Hook Aliases
+
+You can run hooks by their alias instead of ID. This is useful when you have multiple configurations of the same hook:
+
+```yaml
+# .pre-commit-config.yaml
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: pretty-format-json
+        alias: pretty-format-openapi
+        args: [--autofix, '--top-keys=openapi,info,servers,paths,components']
+        files: docs/openapi.json
+      - id: mixed-line-ending
+        alias: mixed-line-ending-openapi
+        args: [--fix=lf]
+        files: docs/openapi.json
+```
+
+```xml
+<configuration>
+    <hooks>
+        <hook>mixed-line-ending-openapi</hook>
+        <hook>pretty-format-openapi</hook>
+    </hooks>
+    <files>
+        <file>docs/openapi.json</file>
+    </files>
+</configuration>
+```
+
 ### With Environment Variables
 
 Useful for controlling Git behavior on Windows (line endings issue):
@@ -64,7 +97,7 @@ Useful for controlling Git behavior on Windows (line endings issue):
 
 | Parameter | Default | Description |
 |-----------|---------|-------------|
-| `hooks` | (required) | List of hook IDs to run sequentially |
+| `hooks` | (required) | List of hook IDs or aliases to run sequentially |
 | `files` | (required) | List of files to run the hook on (relative to project root) |
 | `skip` | `false` | Skip execution entirely |
 | `failOnModification` | `false` | Fail the build if the hook modifies files |
