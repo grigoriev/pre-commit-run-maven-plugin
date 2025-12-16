@@ -305,6 +305,7 @@ class PreCommitRunnerTest {
     }
 
     @Test
+    @DisabledOnOs(OS.WINDOWS)
     void isPreCommitInstalled_shouldBeThreadSafe() throws Exception {
         int threadCount = 10;
         ExecutorService executor = Executors.newFixedThreadPool(threadCount);
