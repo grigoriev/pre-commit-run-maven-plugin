@@ -156,6 +156,35 @@ class PreCommitRunnerIT {
     }
 
     @Test
+    void runHook_shouldConvertCrlfToLfInJson() throws IOException {
+        // Setup
+        initGitRepo();
+        createPreCommitConfig("mixed-line-ending", List.of("--fix=lf"));
+
+        // Copy properly formatted JSON and convert LF to CRLF (simulating Windows line endings)
+        File testFile = copyResourceToTempDir("/integration/formatted.json", "crlf.json");
+        convertLfToCrlf(testFile.toPath());
+
+        // Verify file has CRLF endings before running hook
+        byte[] contentBefore = Files.readAllBytes(testFile.toPath());
+        assertThat(new String(contentBefore, StandardCharsets.UTF_8)).contains("\r\n");
+
+        // Run the mixed-line-ending hook to fix CRLF -> LF
+        PreCommitRunner.Result result = runner.runHook("pre-commit", "mixed-line-ending", List.of(testFile), tempDir.toFile());
+
+        // Hook should modify the file (exit code 1 = files were modified)
+        assertThat(result.isModified())
+                .as("Hook should modify the file. Output: %s", result.getOutput())
+                .isTrue();
+
+        // Verify file now has LF endings (CRLF converted to LF)
+        byte[] contentAfter = Files.readAllBytes(testFile.toPath());
+        assertThat(new String(contentAfter, StandardCharsets.UTF_8))
+                .as("File should have LF endings after hook execution")
+                .doesNotContain("\r\n");
+    }
+
+    @Test
     void runHook_shouldRunEndOfFileFixerHook() throws IOException {
         // Setup
         initGitRepo();
@@ -217,14 +246,26 @@ class PreCommitRunnerIT {
     }
 
     private void createPreCommitConfig(String hookId) throws IOException {
-        String config = """
+        createPreCommitConfig(hookId, null);
+    }
+
+    private void createPreCommitConfig(String hookId, List<String> args) throws IOException {
+        StringBuilder config = new StringBuilder();
+        config.append("""
                 repos:
                   - repo: https://github.com/pre-commit/pre-commit-hooks
                     rev: v5.0.0
                     hooks:
                       - id: %s
-                """.formatted(hookId);
-        Files.writeString(tempDir.resolve(".pre-commit-config.yaml"), config);
+                """.formatted(hookId));
+
+        if (args != null && !args.isEmpty()) {
+            config.append("        args: [");
+            config.append(String.join(", ", args.stream().map(a -> "'" + a + "'").toList()));
+            config.append("]\n");
+        }
+
+        Files.writeString(tempDir.resolve(".pre-commit-config.yaml"), config.toString());
 
         // Install the hooks
         ProcessBuilder pb = new ProcessBuilder("pre-commit", "install-hooks");
@@ -258,5 +299,16 @@ class PreCommitRunnerIT {
             Files.copy(inputStream, targetPath);
         }
         return targetPath.toFile();
+    }
+
+    /**
+     * Converts LF line endings to CRLF (simulating Windows line endings).
+     */
+    private void convertLfToCrlf(Path filePath) throws IOException {
+        byte[] content = Files.readAllBytes(filePath);
+        String text = new String(content, StandardCharsets.UTF_8);
+        // Replace LF with CRLF (but not existing CRLF)
+        String crlfText = text.replace("\r\n", "\n").replace("\n", "\r\n");
+        Files.write(filePath, crlfText.getBytes(StandardCharsets.UTF_8));
     }
 }
