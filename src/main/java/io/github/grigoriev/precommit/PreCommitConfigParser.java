@@ -22,10 +22,10 @@ public class PreCommitConfigParser {
     private static final Logger LOGGER = Logger.getLogger(PreCommitConfigParser.class.getName());
 
     /**
-     * Checks if a hook with the given ID is configured in the pre-commit config file.
+     * Checks if a hook with the given ID or alias is configured in the pre-commit config file.
      *
      * @param configFile the .pre-commit-config.yaml file
-     * @param hookId     the hook ID to look for
+     * @param hookId     the hook ID or alias to look for
      * @return true if the hook is found
      */
     public boolean isHookConfigured(File configFile, String hookId) {
@@ -42,10 +42,10 @@ public class PreCommitConfigParser {
     }
 
     /**
-     * Checks if a hook with the given ID is configured in the pre-commit config.
+     * Checks if a hook with the given ID or alias is configured in the pre-commit config.
      *
      * @param inputStream the input stream of the YAML content
-     * @param hookId      the hook ID to look for
+     * @param hookId      the hook ID or alias to look for
      * @return true if the hook is found
      */
     public boolean isHookConfigured(InputStream inputStream, String hookId) {
@@ -58,7 +58,7 @@ public class PreCommitConfigParser {
             List<Map<String, Object>> repos = getRepos(config);
             return repos.stream()
                     .flatMap(repo -> getHooks(repo).stream())
-                    .anyMatch(hook -> hookId.equals(hook.get("id")));
+                    .anyMatch(hook -> hookId.equals(hook.get("id")) || hookId.equals(hook.get("alias")));
         } catch (Exception e) {
             LOGGER.log(Level.WARNING, "Failed to parse pre-commit config YAML", e);
             return false;

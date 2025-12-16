@@ -8,6 +8,8 @@ Maven plugin for running [pre-commit](https://pre-commit.com/) hooks during the 
 ## Features
 
 - Run any pre-commit hook on specified files at any Maven build phase
+- Support for glob patterns in file paths (e.g., `src/**/*.java`)
+- Support for hook aliases (run hooks by alias instead of ID)
 - Graceful degradation when pre-commit is not installed
 - Configurable behavior for file modifications
 - Validates hook existence in `.pre-commit-config.yaml`
@@ -18,7 +20,7 @@ Maven plugin for running [pre-commit](https://pre-commit.com/) hooks during the 
 <plugin>
     <groupId>io.github.grigoriev</groupId>
     <artifactId>pre-commit-run-maven-plugin</artifactId>
-    <version>0.2.0</version>
+    <version>1.0.0</version>
     <executions>
         <execution>
             <id>format-openapi-json</id>
@@ -27,7 +29,10 @@ Maven plugin for running [pre-commit](https://pre-commit.com/) hooks during the 
                 <goal>run</goal>
             </goals>
             <configuration>
-                <hookId>pretty-format-json</hookId>
+                <hooks>
+                    <hook>mixed-line-ending</hook>
+                    <hook>pretty-format-json</hook>
+                </hooks>
                 <files>
                     <file>docs/openapi.json</file>
                 </files>
@@ -37,15 +42,55 @@ Maven plugin for running [pre-commit](https://pre-commit.com/) hooks during the 
 </plugin>
 ```
 
-### Multiple Hooks
+Hooks are executed in order. If any hook fails, subsequent hooks are skipped.
 
-Run multiple hooks sequentially on the same files:
+### Using Glob Patterns
+
+You can use glob patterns to match multiple files:
 
 ```xml
 <configuration>
     <hooks>
-        <hook>mixed-line-ending</hook>
-        <hook>pretty-format-json</hook>
+        <hook>trailing-whitespace</hook>
+    </hooks>
+    <files>
+        <file>src/**/*.java</file>
+        <file>docs/*.md</file>
+    </files>
+</configuration>
+```
+
+Supported glob patterns:
+- `*` - matches any characters except path separator
+- `**` - matches any characters including path separators (recursive)
+- `?` - matches a single character
+- `[abc]` - matches any character in brackets
+
+### Using Hook Aliases
+
+You can run hooks by their alias instead of ID. This is useful when you have multiple configurations of the same hook:
+
+```yaml
+# .pre-commit-config.yaml
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: pretty-format-json
+        alias: pretty-format-openapi
+        args: [--autofix, '--top-keys=openapi,info,servers,paths,components']
+        files: docs/openapi.json
+      - id: mixed-line-ending
+        alias: mixed-line-ending-openapi
+        args: [--fix=lf]
+        files: docs/openapi.json
+```
+
+```xml
+<configuration>
+    <hooks>
+        <hook>mixed-line-ending-openapi</hook>
+        <hook>pretty-format-openapi</hook>
     </hooks>
     <files>
         <file>docs/openapi.json</file>
@@ -53,15 +98,15 @@ Run multiple hooks sequentially on the same files:
 </configuration>
 ```
 
-Hooks are executed in order. If any hook fails, subsequent hooks are skipped.
-
 ### With Environment Variables
 
 Useful for controlling Git behavior on Windows (line endings issue):
 
 ```xml
 <configuration>
-    <hookId>pretty-format-json</hookId>
+    <hooks>
+        <hook>pretty-format-json</hook>
+    </hooks>
     <files>
         <file>docs/openapi.json</file>
     </files>
@@ -75,9 +120,8 @@ Useful for controlling Git behavior on Windows (line endings issue):
 
 | Parameter | Default | Description |
 |-----------|---------|-------------|
-| `hookId` | - | Single hook ID to run (use this OR `hooks`) |
-| `hooks` | - | List of hook IDs to run sequentially (use this OR `hookId`) |
-| `files` | (required) | List of files to run the hook on (relative to project root) |
+| `hooks` | (required) | List of hook IDs or aliases to run sequentially |
+| `files` | (required) | List of files or glob patterns to run the hook on (relative to project root) |
 | `skip` | `false` | Skip execution entirely |
 | `failOnModification` | `false` | Fail the build if the hook modifies files |
 | `skipIfHookNotFound` | `true` | Skip if hook is not in `.pre-commit-config.yaml` |

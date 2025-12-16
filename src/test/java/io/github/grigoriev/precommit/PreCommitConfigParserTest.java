@@ -174,6 +174,47 @@ class PreCommitConfigParserTest {
         assertThat(parser.isHookConfigured(configDir, "hook")).isFalse();
     }
 
+    @Test
+    void isHookConfigured_shouldFindHookByAlias() {
+        String yaml = """
+                repos:
+                  - repo: https://github.com/pre-commit/pre-commit-hooks
+                    rev: v5.0.0
+                    hooks:
+                      - id: pretty-format-json
+                        alias: pretty-format-openapi-json
+                        args: [--autofix]
+                      - id: mixed-line-ending
+                        alias: mixed-line-ending-openapi
+                        args: [--fix=lf]
+                """;
+
+        // Should find by alias
+        assertThat(parser.isHookConfigured(toInputStream(yaml), "pretty-format-openapi-json")).isTrue();
+        assertThat(parser.isHookConfigured(toInputStream(yaml), "mixed-line-ending-openapi")).isTrue();
+
+        // Should still find by id
+        assertThat(parser.isHookConfigured(toInputStream(yaml), "pretty-format-json")).isTrue();
+        assertThat(parser.isHookConfigured(toInputStream(yaml), "mixed-line-ending")).isTrue();
+
+        // Should not find non-existent
+        assertThat(parser.isHookConfigured(toInputStream(yaml), "non-existent")).isFalse();
+    }
+
+    @Test
+    void isHookConfigured_shouldHandleHookWithoutAlias() {
+        String yaml = """
+                repos:
+                  - repo: https://github.com/pre-commit/pre-commit-hooks
+                    rev: v5.0.0
+                    hooks:
+                      - id: trailing-whitespace
+                """;
+
+        assertThat(parser.isHookConfigured(toInputStream(yaml), "trailing-whitespace")).isTrue();
+        assertThat(parser.isHookConfigured(toInputStream(yaml), "some-alias")).isFalse();
+    }
+
     private ByteArrayInputStream toInputStream(String content) {
         return new ByteArrayInputStream(content.getBytes(StandardCharsets.UTF_8));
     }
