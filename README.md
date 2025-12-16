@@ -18,7 +18,7 @@ Maven plugin for running [pre-commit](https://pre-commit.com/) hooks during the 
 <plugin>
     <groupId>io.github.grigoriev</groupId>
     <artifactId>pre-commit-run-maven-plugin</artifactId>
-    <version>0.1.0-SNAPSHOT</version>
+    <version>0.1.1</version>
     <executions>
         <execution>
             <id>format-openapi-json</id>
@@ -37,11 +37,46 @@ Maven plugin for running [pre-commit](https://pre-commit.com/) hooks during the 
 </plugin>
 ```
 
+### Multiple Hooks
+
+Run multiple hooks sequentially on the same files:
+
+```xml
+<configuration>
+    <hooks>
+        <hook>mixed-line-ending</hook>
+        <hook>pretty-format-json</hook>
+    </hooks>
+    <files>
+        <file>docs/openapi.json</file>
+    </files>
+</configuration>
+```
+
+Hooks are executed in order. If any hook fails, subsequent hooks are skipped.
+
+### With Environment Variables
+
+Useful for controlling Git behavior on Windows (line endings issue):
+
+```xml
+<configuration>
+    <hookId>pretty-format-json</hookId>
+    <files>
+        <file>docs/openapi.json</file>
+    </files>
+    <environmentVariables>
+        <GIT_CONFIG_PARAMETERS>'core.autocrlf=false'</GIT_CONFIG_PARAMETERS>
+    </environmentVariables>
+</configuration>
+```
+
 ## Configuration Options
 
 | Parameter | Default | Description |
 |-----------|---------|-------------|
-| `hookId` | (required) | The pre-commit hook ID to run |
+| `hookId` | - | Single hook ID to run (use this OR `hooks`) |
+| `hooks` | - | List of hook IDs to run sequentially (use this OR `hookId`) |
 | `files` | (required) | List of files to run the hook on (relative to project root) |
 | `skip` | `false` | Skip execution entirely |
 | `failOnModification` | `false` | Fail the build if the hook modifies files |
@@ -49,6 +84,7 @@ Maven plugin for running [pre-commit](https://pre-commit.com/) hooks during the 
 | `skipIfConfigNotFound` | `true` | Skip if `.pre-commit-config.yaml` doesn't exist |
 | `skipIfNotInstalled` | `true` | Skip if pre-commit is not installed |
 | `preCommitExecutable` | `pre-commit` | Path to pre-commit executable |
+| `environmentVariables` | (none) | Additional environment variables for the pre-commit process |
 
 ## Exit Codes
 

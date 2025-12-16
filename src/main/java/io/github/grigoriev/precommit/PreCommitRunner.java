@@ -8,6 +8,7 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -80,12 +81,31 @@ public class PreCommitRunner {
      * @return the result containing exit code and output
      */
     public Result runHook(String executable, String hookId, List<File> files, File workingDir) {
+        return runHook(executable, hookId, files, workingDir, null);
+    }
+
+    /**
+     * Runs a pre-commit hook on the specified files with custom environment variables.
+     *
+     * @param executable           the pre-commit executable
+     * @param hookId               the hook ID to run
+     * @param files                the files to run the hook on (can be empty to run on all files)
+     * @param workingDir           the working directory
+     * @param environmentVariables additional environment variables (can be null)
+     * @return the result containing exit code and output
+     */
+    public Result runHook(String executable, String hookId, List<File> files, File workingDir,
+                          Map<String, String> environmentVariables) {
         List<String> command = buildCommand(executable, hookId, files);
 
         try {
             ProcessBuilder pb = new ProcessBuilder(command);
             pb.directory(workingDir);
             pb.redirectErrorStream(true);
+
+            if (environmentVariables != null && !environmentVariables.isEmpty()) {
+                pb.environment().putAll(environmentVariables);
+            }
 
             Process process = pb.start();
             StringBuilder output = new StringBuilder();
