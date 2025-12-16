@@ -11,11 +11,15 @@ import java.io.InputStream;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Parses .pre-commit-config.yaml files.
  */
 public class PreCommitConfigParser {
+
+    private static final Logger LOGGER = Logger.getLogger(PreCommitConfigParser.class.getName());
 
     /**
      * Checks if a hook with the given ID is configured in the pre-commit config file.
@@ -32,6 +36,7 @@ public class PreCommitConfigParser {
         try (InputStream is = new FileInputStream(configFile)) {
             return isHookConfigured(is, hookId);
         } catch (IOException e) {
+            LOGGER.log(Level.WARNING, "Failed to read pre-commit config file: " + configFile.getPath(), e);
             return false;
         }
     }
@@ -55,6 +60,7 @@ public class PreCommitConfigParser {
                     .flatMap(repo -> getHooks(repo).stream())
                     .anyMatch(hook -> hookId.equals(hook.get("id")));
         } catch (Exception e) {
+            LOGGER.log(Level.WARNING, "Failed to parse pre-commit config YAML", e);
             return false;
         }
     }
