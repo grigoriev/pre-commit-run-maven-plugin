@@ -3,7 +3,6 @@ package io.github.grigoriev.precommit;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.DisabledOnOs;
-import org.junit.jupiter.api.condition.EnabledOnOs;
 import org.junit.jupiter.api.condition.OS;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -22,6 +21,11 @@ import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+/**
+ * Tests for PreCommitRunner that require Unix shell commands.
+ * Result class tests are in PreCommitRunnerResultTest.
+ */
+@DisabledOnOs(OS.WINDOWS)
 class PreCommitRunnerTest {
 
     private PreCommitRunner runner;
@@ -47,13 +51,6 @@ class PreCommitRunnerTest {
     void isPreCommitInstalled_shouldReturnTrueForValidCommand() {
         // 'true' command exists on Unix and always returns 0
         assertThat(runner.isPreCommitInstalled("true")).isTrue();
-    }
-
-    @Test
-    @EnabledOnOs(OS.WINDOWS)
-    void isPreCommitInstalled_shouldReturnTrueForValidCommand_windows() {
-        // 'cmd /c exit 0' returns 0 on Windows
-        assertThat(runner.isPreCommitInstalled("cmd")).isTrue();
     }
 
     @Test
@@ -135,52 +132,6 @@ class PreCommitRunnerTest {
         assertThat(result.getExitCode()).isZero();
         assertThat(result.getOutput()).contains(file1.getAbsolutePath());
         assertThat(result.getOutput()).contains(file2.getAbsolutePath());
-    }
-
-    // Result class tests
-
-    @Test
-    void result_isPassed_shouldReturnTrueForExitCode0() {
-        PreCommitRunner.Result result = new PreCommitRunner.Result(0, "output");
-
-        assertThat(result.isPassed()).isTrue();
-        assertThat(result.isModified()).isFalse();
-        assertThat(result.isFailed()).isFalse();
-    }
-
-    @Test
-    void result_isModified_shouldReturnTrueForExitCode1() {
-        PreCommitRunner.Result result = new PreCommitRunner.Result(1, "output");
-
-        assertThat(result.isPassed()).isFalse();
-        assertThat(result.isModified()).isTrue();
-        assertThat(result.isFailed()).isFalse();
-    }
-
-    @Test
-    void result_isFailed_shouldReturnTrueForExitCodeGreaterThan1() {
-        PreCommitRunner.Result result = new PreCommitRunner.Result(2, "output");
-
-        assertThat(result.isPassed()).isFalse();
-        assertThat(result.isModified()).isFalse();
-        assertThat(result.isFailed()).isTrue();
-    }
-
-    @Test
-    void result_isFailed_shouldReturnTrueForNegativeExitCode() {
-        PreCommitRunner.Result result = new PreCommitRunner.Result(-1, "error");
-
-        assertThat(result.isPassed()).isFalse();
-        assertThat(result.isModified()).isFalse();
-        assertThat(result.isFailed()).isTrue();
-    }
-
-    @Test
-    void result_shouldStoreExitCodeAndOutput() {
-        PreCommitRunner.Result result = new PreCommitRunner.Result(42, "test output");
-
-        assertThat(result.getExitCode()).isEqualTo(42);
-        assertThat(result.getOutput()).isEqualTo("test output");
     }
 
     // Timeout tests
