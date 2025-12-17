@@ -28,7 +28,7 @@
 ## Future Improvements
 
 ### Code Quality
-- [ ] Add Checkstyle for code style enforcement
+- [x] Add Checkstyle for code style enforcement
 
 ### Features
 - [ ] Add `verbose` parameter for detailed output
