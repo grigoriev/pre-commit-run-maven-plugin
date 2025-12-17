@@ -43,7 +43,7 @@ mvn clean verify
 
 ## Commit Messages
 
-This project follows [Conventional Commits](https://www.conventionalcommits.org/):
+This project uses [Commitizen](https://commitizen-tools.github.io/commitizen/) with [Conventional Commits](https://www.conventionalcommits.org/):
 
 - `feat:` - new feature
 - `fix:` - bug fix
@@ -51,6 +51,12 @@ This project follows [Conventional Commits](https://www.conventionalcommits.org/
 - `test:` - adding or updating tests
 - `refactor:` - code refactoring
 - `chore:` - maintenance tasks
+
+Commit messages are validated by pre-commit hook. Install hooks:
+
+```bash
+pre-commit install --hook-type commit-msg
+```
 
 ## Code Style
 
