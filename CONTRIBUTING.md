@@ -60,6 +60,13 @@ pre-commit install --hook-type commit-msg
 
 ## Code Style
 
+This project uses Checkstyle with a customized Google style:
+
+- 4-space indentation
+- 160 character line limit
+- Run `mvn checkstyle:check` to verify
+
+Additional guidelines:
 - Follow existing code patterns
 - Maintain 100% test coverage for new code
 - Add Javadoc for public APIs
