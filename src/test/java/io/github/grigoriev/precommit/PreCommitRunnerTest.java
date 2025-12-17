@@ -22,6 +22,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatNoException;
 
 /**
  * Tests for PreCommitRunner that require Unix shell commands.
@@ -254,10 +255,7 @@ class PreCommitRunnerTest {
         };
 
         // Should not throw - IOException should be caught and ignored
-        drainStreamMethod.invoke(runner, failingStream);
-
-        // If we get here without exception, the test passed
-        assertThat(true).isTrue();
+        assertThatNoException().isThrownBy(() -> drainStreamMethod.invoke(runner, failingStream));
     }
 
     // Concurrent execution tests
