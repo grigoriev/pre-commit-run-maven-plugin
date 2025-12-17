@@ -27,9 +27,6 @@
 
 ## Future Improvements
 
-### Security
-- [ ] Add OWASP dependency-check plugin for vulnerability scanning
-
 ### Code Quality
 - [ ] Add Checkstyle for code style enforcement
 
@@ -38,5 +35,5 @@
 - [ ] Add `help` goal (`mvn pre-commit:help`)
 
 ### Documentation
-- [ ] Add CHANGELOG.md with version history
-- [ ] Add CONTRIBUTING.md for contributors
+- [x] Add CHANGELOG.md with version history
+- [x] Add CONTRIBUTING.md for contributors
