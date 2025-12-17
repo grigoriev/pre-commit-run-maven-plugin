@@ -1,7 +1,12 @@
 # pre-commit-run-maven-plugin
 
+[![CI](https://github.com/grigoriev/pre-commit-run-maven-plugin/actions/workflows/ci.yml/badge.svg)](https://github.com/grigoriev/pre-commit-run-maven-plugin/actions/workflows/ci.yml)
 [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=grigoriev_pre-commit-run-maven-plugin&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=grigoriev_pre-commit-run-maven-plugin)
 [![Coverage](https://sonarcloud.io/api/project_badges/measure?project=grigoriev_pre-commit-run-maven-plugin&metric=coverage)](https://sonarcloud.io/summary/new_code?id=grigoriev_pre-commit-run-maven-plugin)
+[![GitHub Release](https://img.shields.io/github/v/release/grigoriev/pre-commit-run-maven-plugin)](https://github.com/grigoriev/pre-commit-run-maven-plugin/releases)
+[![Maven Central](https://img.shields.io/maven-central/v/io.github.grigoriev/pre-commit-run-maven-plugin)](https://central.sonatype.com/artifact/io.github.grigoriev/pre-commit-run-maven-plugin)
+[![Java 17+](https://img.shields.io/badge/java-17+-blue.svg)](https://openjdk.org/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 Maven plugin for running [pre-commit](https://pre-commit.com/) hooks during the Maven build lifecycle.
 
@@ -129,6 +134,8 @@ Useful for controlling Git behavior on Windows (line endings issue):
 | `skipIfNotInstalled` | `true` | Skip if pre-commit is not installed |
 | `preCommitExecutable` | `pre-commit` | Path to pre-commit executable |
 | `environmentVariables` | (none) | Additional environment variables for the pre-commit process |
+| `timeout` | `300` | Timeout in seconds for hook execution |
+| `installCheckTimeout` | `10` | Timeout in seconds for checking if pre-commit is installed |
 
 ## Exit Codes
 
@@ -154,6 +161,43 @@ mvn clean install
 - Maven 3.6+
 - [pre-commit](https://pre-commit.com/) installed and in PATH
 
+## Troubleshooting
+
+### pre-commit not found
+
+If you see `pre-commit is not installed or not in PATH`, ensure pre-commit is installed and accessible:
+
+```bash
+# Verify installation
+pre-commit --version
+
+# If using a virtual environment, specify the full path
+<preCommitExecutable>/path/to/venv/bin/pre-commit</preCommitExecutable>
+```
+
+### Hook not found in config
+
+If you see `Hook 'hook-id' not found in .pre-commit-config.yaml`:
+
+ - Verify the hook ID matches exactly (check for typos)
+ - Run `pre-commit install` to initialize hooks
+
+### Hook times out
+
+The default timeout is 300 seconds (5 minutes). For slow hooks, increase the timeout:
+
+```xml
+<configuration>
+    <timeout>600</timeout> <!-- 10 minutes -->
+    <hooks>
+        <hook>slow-hook</hook>
+    </hooks>
+    <files>
+        <file>large-file.json</file>
+    </files>
+</configuration>
+```
+
 ## License
 
-MIT
+MIT License - see [LICENSE](LICENSE) for details.

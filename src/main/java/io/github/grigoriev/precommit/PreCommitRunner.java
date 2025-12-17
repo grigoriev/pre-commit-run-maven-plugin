@@ -22,6 +22,9 @@ public class PreCommitRunner {
     private final long timeoutSeconds;
     private final long installCheckTimeoutSeconds;
 
+    /**
+     * Creates a PreCommitRunner with default timeouts.
+     */
     public PreCommitRunner() {
         this(DEFAULT_TIMEOUT_SECONDS, DEFAULT_INSTALL_CHECK_TIMEOUT_SECONDS);
     }
@@ -171,22 +174,47 @@ public class PreCommitRunner {
      */
     public record Result(int exitCode, String output) {
 
+        /**
+         * Returns the exit code of the pre-commit process.
+         *
+         * @return the exit code
+         */
         public int getExitCode() {
             return exitCode;
         }
 
+        /**
+         * Returns the output of the pre-commit process.
+         *
+         * @return the process output
+         */
         public String getOutput() {
             return output;
         }
 
+        /**
+         * Returns true if the hook passed without modifications (exit code 0).
+         *
+         * @return true if passed
+         */
         public boolean isPassed() {
             return exitCode == 0;
         }
 
+        /**
+         * Returns true if the hook modified files (exit code 1).
+         *
+         * @return true if files were modified
+         */
         public boolean isModified() {
             return exitCode == 1;
         }
 
+        /**
+         * Returns true if the hook failed (exit code &gt; 1 or &lt; 0).
+         *
+         * @return true if failed
+         */
         public boolean isFailed() {
             return exitCode > 1 || exitCode < 0;
         }

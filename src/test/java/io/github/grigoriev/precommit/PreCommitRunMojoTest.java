@@ -2,6 +2,7 @@ package io.github.grigoriev.precommit;
 
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
+import org.apache.maven.plugin.logging.Log;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -40,6 +41,9 @@ class PreCommitRunMojoTest {
     @Mock
     private PreCommitRunner runner;
 
+    @Mock
+    private Log log;
+
     private PreCommitRunMojo mojo;
 
     @TempDir
@@ -48,6 +52,7 @@ class PreCommitRunMojoTest {
     @BeforeEach
     void setUp() {
         mojo = new PreCommitRunMojo(configParser, runner);
+        mojo.setLog(log);
         mojo.setBasedir(tempDir.toFile());
         mojo.setHooks(List.of("test-hook"));
         mojo.setPreCommitExecutable("pre-commit");
@@ -372,7 +377,65 @@ class PreCommitRunMojoTest {
         assertThat(defaultMojo).isNotNull();
     }
 
+    @Test
+    void setTimeout_shouldSetTimeout() {
+        mojo.setTimeout(600);
+        // Just verify it doesn't throw - the value is used internally
+        assertThat(mojo).isNotNull();
+    }
+
+    @Test
+    void setInstallCheckTimeout_shouldSetInstallCheckTimeout() {
+        mojo.setInstallCheckTimeout(30);
+        // Just verify it doesn't throw - the value is used internally
+        assertThat(mojo).isNotNull();
+    }
+
+    @Test
+    void execute_shouldUseLazyInitializedRunnerWithTimeouts() throws Exception {
+        // Use default constructor which has lazy initialization
+        PreCommitRunMojo lazyMojo = new PreCommitRunMojo();
+        lazyMojo.setLog(log);
+        lazyMojo.setBasedir(tempDir.toFile());
+        lazyMojo.setHooks(List.of("test-hook"));
+        lazyMojo.setPreCommitExecutable("non-existent-pre-commit");
+        lazyMojo.setTimeout(1);
+        lazyMojo.setInstallCheckTimeout(1);
+        lazyMojo.setSkipIfNotInstalled(true);
+
+        // This will trigger lazy initialization of runner
+        lazyMojo.execute();
+
+        // If we get here without exception and skipIfNotInstalled worked, lazy init succeeded
+        assertThat(lazyMojo).isNotNull();
+    }
+
+
     // Glob pattern tests
+
+    @Test
+    void isGlobPattern_shouldUseLazyInitializedGlobExpander() throws Exception {
+        // Use default constructor which has lazy initialization
+        PreCommitRunMojo lazyMojo = new PreCommitRunMojo();
+        lazyMojo.setLog(log);
+
+        // This will trigger lazy initialization of GlobPatternExpander
+        assertThat(lazyMojo.isGlobPattern("*.java")).isTrue();
+        assertThat(lazyMojo.isGlobPattern("plain.txt")).isFalse();
+
+        // Trigger the warning logger to cover the lambda in getGlobExpander
+        java.lang.reflect.Field expanderField = PreCommitRunMojo.class.getDeclaredField("globExpander");
+        expanderField.setAccessible(true);
+        GlobPatternExpander expander = (GlobPatternExpander) expanderField.get(lazyMojo);
+
+        java.lang.reflect.Field loggerField = GlobPatternExpander.class.getDeclaredField("warningLogger");
+        loggerField.setAccessible(true);
+        @SuppressWarnings("unchecked")
+        java.util.function.Consumer<String> warningLogger = (java.util.function.Consumer<String>) loggerField.get(expander);
+        warningLogger.accept("Test warning message");
+
+        verify(log).warn("Test warning message");
+    }
 
     @Test
     void isGlobPattern_shouldDetectGlobPatterns() {

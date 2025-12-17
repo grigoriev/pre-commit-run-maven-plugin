@@ -28,6 +28,9 @@ mvn test -Dtest=PreCommitRunMojoTest#execute_shouldSkipWhenSkipIsTrue
 mvn jacoco:report
 # Report at: target/site/jacoco/index.html
 
+# Check code style
+mvn checkstyle:check
+
 # Package without tests
 mvn package -DskipTests
 ```
@@ -39,6 +42,7 @@ mvn package -DskipTests
 - `PreCommitRunMojo` - Main Maven plugin goal (`pre-commit:run`). Configures and orchestrates hook execution.
 - `PreCommitRunner` - Executes pre-commit commands via ProcessBuilder, handles timeouts (configurable) and output capture.
 - `PreCommitConfigParser` - Parses `.pre-commit-config.yaml` using SnakeYAML to verify hook existence.
+- `GlobPatternExpander` - Expands glob patterns (`**/*.java`) to matching files using Java NIO.
 
 ### Exit Code Handling
 
@@ -55,6 +59,8 @@ Key parameters in `PreCommitRunMojo`:
 - `skipIfHookNotFound`, `skipIfConfigNotFound`, `skipIfNotInstalled` - Graceful degradation options (default: true)
 - `preCommitExecutable` - Path to pre-commit executable (default: "pre-commit")
 - `environmentVariables` - Additional environment variables for the pre-commit process
+- `timeout` - Timeout in seconds for hook execution (default: 300)
+- `installCheckTimeout` - Timeout in seconds for checking if pre-commit is installed (default: 10)
 
 ## Testing
 
@@ -62,5 +68,11 @@ Tests use JUnit 5, Mockito for mocking, and AssertJ for assertions. Coverage is 
 
 Key test classes:
 - `PreCommitRunMojoTest` - Tests plugin execution logic with mocked dependencies
+- `PreCommitRunMojoIT` - Integration tests with real pre-commit installation
 - `PreCommitRunnerTest` - Tests process execution including timeouts and interrupts
 - `PreCommitConfigParserTest` - Tests YAML parsing edge cases
+- `GlobPatternExpanderTest` - Tests glob pattern expansion
+
+### Code Style
+
+Checkstyle with customized Google style (4-space indentation, 160 char line limit). Run `mvn checkstyle:check` to verify.

@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Checkstyle integration with Google style (4-space indentation, 160 char line limit)
+- Commitizen configuration for conventional commits
+- CONTRIBUTING.md with development guidelines
+
+### Changed
+- Suppressed log output during tests for cleaner test runs
+
 ## [1.0.0] - 2024-12-16
 
 ### Added

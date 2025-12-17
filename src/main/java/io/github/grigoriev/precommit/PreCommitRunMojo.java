@@ -8,14 +8,6 @@ import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 
 import java.io.File;
-import java.io.IOException;
-import java.nio.file.FileSystems;
-import java.nio.file.FileVisitResult;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.PathMatcher;
-import java.nio.file.SimpleFileVisitor;
-import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -84,17 +76,51 @@ public class PreCommitRunMojo extends AbstractMojo {
     @Parameter
     private Map<String, String> environmentVariables;
 
-    private final PreCommitConfigParser configParser;
-    private final PreCommitRunner runner;
+    /**
+     * Timeout in seconds for hook execution.
+     * Default is 300 seconds (5 minutes).
+     */
+    @Parameter(property = "precommit.timeout", defaultValue = "300")
+    private long timeout = 300;
 
+    /**
+     * Timeout in seconds for checking if pre-commit is installed.
+     * Default is 10 seconds.
+     */
+    @Parameter(property = "precommit.installCheckTimeout", defaultValue = "10")
+    private long installCheckTimeout = 10;
+
+    private final PreCommitConfigParser configParser;
+    private GlobPatternExpander globExpander;
+    private PreCommitRunner runner;
+
+    /**
+     * Creates a new PreCommitRunMojo with default dependencies.
+     */
     public PreCommitRunMojo() {
         this.configParser = new PreCommitConfigParser();
-        this.runner = new PreCommitRunner();
+        this.globExpander = null; // Lazily initialized
+        this.runner = null; // Lazily initialized with timeout values
     }
 
     PreCommitRunMojo(PreCommitConfigParser configParser, PreCommitRunner runner) {
         this.configParser = configParser;
+        this.globExpander = new GlobPatternExpander();
         this.runner = runner;
+    }
+
+    private GlobPatternExpander getGlobExpander() {
+        if (globExpander == null) {
+            globExpander = new GlobPatternExpander(message -> getLog().warn(message));
+        }
+        return globExpander;
+    }
+
+    private PreCommitRunner getRunner() {
+        if (runner == null) {
+            runner = new PreCommitRunner(timeout, installCheckTimeout);
+        }
+        return runner;
     }
 
     @Override
@@ -139,7 +165,7 @@ public class PreCommitRunMojo extends AbstractMojo {
     }
 
     private boolean checkPreCommitInstalled() throws MojoFailureException {
-        if (runner.isPreCommitInstalled(preCommitExecutable)) {
+        if (getRunner().isPreCommitInstalled(preCommitExecutable)) {
             return true;
         }
         if (skipIfNotInstalled) {
@@ -209,10 +235,11 @@ public class PreCommitRunMojo extends AbstractMojo {
         if (files == null || files.isEmpty()) {
             return List.of();
         }
+        GlobPatternExpander expander = getGlobExpander();
         List<File> resolvedFiles = new ArrayList<>();
         for (String pattern : files) {
-            if (isGlobPattern(pattern)) {
-                resolvedFiles.addAll(expandGlobPattern(pattern));
+            if (expander.isGlobPattern(pattern)) {
+                resolvedFiles.addAll(expander.expand(pattern, basedir));
             } else {
                 resolvedFiles.add(new File(basedir, pattern));
             }
@@ -221,38 +248,7 @@ public class PreCommitRunMojo extends AbstractMojo {
     }
 
     boolean isGlobPattern(String path) {
-        return path.contains("*") || path.contains("?") || path.contains("[");
-    }
-
-    private List<File> expandGlobPattern(String pattern) {
-        List<File> matchedFiles = new ArrayList<>();
-        Path startDir = basedir.toPath();
-
-        // Convert pattern to glob syntax
-        String globPattern = "glob:" + pattern;
-        PathMatcher matcher = FileSystems.getDefault().getPathMatcher(globPattern);
-
-        try {
-            Files.walkFileTree(startDir, new SimpleFileVisitor<>() {
-                @Override
-                public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) {
-                    Path relativePath = startDir.relativize(file);
-                    if (matcher.matches(relativePath)) {
-                        matchedFiles.add(file.toFile());
-                    }
-                    return FileVisitResult.CONTINUE;
-                }
-
-                @Override
-                public FileVisitResult visitFileFailed(Path file, IOException exc) {
-                    return FileVisitResult.CONTINUE;
-                }
-            });
-        } catch (IOException e) {
-            getLog().warn("Failed to expand glob pattern: " + pattern + " - " + e.getMessage());
-        }
-
-        return matchedFiles;
+        return getGlobExpander().isGlobPattern(path);
     }
 
     private void runHooksAndHandleResults(List<String> hooksToRun, List<File> resolvedFiles) throws MojoFailureException {
@@ -263,7 +259,7 @@ public class PreCommitRunMojo extends AbstractMojo {
 
     private void runSingleHook(String hook, List<File> resolvedFiles) throws MojoFailureException {
         getLog().info("Running pre-commit hook '" + hook + "' on " + resolvedFiles.size() + " file(s)");
-        PreCommitRunner.Result result = runner.runHook(preCommitExecutable, hook, resolvedFiles, basedir, environmentVariables);
+        PreCommitRunner.Result result = getRunner().runHook(preCommitExecutable, hook, resolvedFiles, basedir, environmentVariables);
         logOutput(result);
         handleExitCode(hook, result.getExitCode());
     }
@@ -335,5 +331,13 @@ public class PreCommitRunMojo extends AbstractMojo {
 
     void setEnvironmentVariables(Map<String, String> environmentVariables) {
         this.environmentVariables = environmentVariables;
+    }
+
+    void setTimeout(long timeout) {
+        this.timeout = timeout;
+    }
+
+    void setInstallCheckTimeout(long installCheckTimeout) {
+        this.installCheckTimeout = installCheckTimeout;
     }
 }
