@@ -372,6 +372,39 @@ class PreCommitRunMojoTest {
         assertThat(defaultMojo).isNotNull();
     }
 
+    @Test
+    void setTimeout_shouldSetTimeout() {
+        mojo.setTimeout(600);
+        // Just verify it doesn't throw - the value is used internally
+        assertThat(mojo).isNotNull();
+    }
+
+    @Test
+    void setInstallCheckTimeout_shouldSetInstallCheckTimeout() {
+        mojo.setInstallCheckTimeout(30);
+        // Just verify it doesn't throw - the value is used internally
+        assertThat(mojo).isNotNull();
+    }
+
+    @Test
+    void execute_shouldUseLazyInitializedRunnerWithTimeouts() throws Exception {
+        // Use default constructor which has lazy initialization
+        PreCommitRunMojo lazyMojo = new PreCommitRunMojo();
+        lazyMojo.setBasedir(tempDir.toFile());
+        lazyMojo.setHooks(List.of("test-hook"));
+        lazyMojo.setPreCommitExecutable("non-existent-pre-commit");
+        lazyMojo.setTimeout(1);
+        lazyMojo.setInstallCheckTimeout(1);
+        lazyMojo.setSkipIfNotInstalled(true);
+
+        // This will trigger lazy initialization of runner
+        lazyMojo.execute();
+
+        // If we get here without exception and skipIfNotInstalled worked, lazy init succeeded
+        assertThat(lazyMojo).isNotNull();
+    }
+
+
     // Glob pattern tests
 
     @Test

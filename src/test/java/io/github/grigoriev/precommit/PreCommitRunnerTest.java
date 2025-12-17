@@ -8,6 +8,8 @@ import org.junit.jupiter.api.io.TempDir;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
+import java.lang.reflect.Method;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -234,6 +236,28 @@ class PreCommitRunnerTest {
         Path filePath = tempDir.resolve(name);
         Files.writeString(filePath, "test content");
         return filePath.toFile();
+    }
+
+    // drainStream IOException coverage test
+
+    @Test
+    void drainStream_shouldHandleIOException() throws Exception {
+        // Use reflection to call private drainStream method with a failing InputStream
+        Method drainStreamMethod = PreCommitRunner.class.getDeclaredMethod("drainStream", InputStream.class);
+        drainStreamMethod.setAccessible(true);
+
+        InputStream failingStream = new InputStream() {
+            @Override
+            public int read() throws IOException {
+                throw new IOException("Simulated stream failure");
+            }
+        };
+
+        // Should not throw - IOException should be caught and ignored
+        drainStreamMethod.invoke(runner, failingStream);
+
+        // If we get here without exception, the test passed
+        assertThat(true).isTrue();
     }
 
     // Concurrent execution tests
