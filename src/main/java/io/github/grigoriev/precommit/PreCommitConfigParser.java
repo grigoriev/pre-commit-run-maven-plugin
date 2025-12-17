@@ -22,6 +22,13 @@ public class PreCommitConfigParser {
     private static final Logger LOGGER = Logger.getLogger(PreCommitConfigParser.class.getName());
 
     /**
+     * Creates a new PreCommitConfigParser.
+     */
+    public PreCommitConfigParser() {
+        // Default constructor
+    }
+
+    /**
      * Checks if a hook with the given ID or alias is configured in the pre-commit config file.
      *
      * @param configFile the .pre-commit-config.yaml file

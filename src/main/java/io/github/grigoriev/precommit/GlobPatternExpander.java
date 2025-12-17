@@ -20,10 +20,18 @@ public class GlobPatternExpander {
 
     private final Consumer<String> warningLogger;
 
+    /**
+     * Creates a GlobPatternExpander with no-op warning logger.
+     */
     public GlobPatternExpander() {
         this(message -> { });
     }
 
+    /**
+     * Creates a GlobPatternExpander with the specified warning logger.
+     *
+     * @param warningLogger consumer to receive warning messages
+     */
     public GlobPatternExpander(Consumer<String> warningLogger) {
         this.warningLogger = warningLogger;
     }
@@ -64,6 +72,11 @@ public class GlobPatternExpander {
     /**
      * Walks the file tree and collects matching files.
      * Protected for testing purposes.
+     *
+     * @param startDir the directory to start walking from
+     * @param matcher the path matcher to use for filtering files
+     * @param matchedFiles list to collect matching files into
+     * @throws IOException if an I/O error occurs while walking the file tree
      */
     protected void walkFileTree(Path startDir, PathMatcher matcher, List<File> matchedFiles) throws IOException {
         Files.walkFileTree(startDir, new SimpleFileVisitor<>() {

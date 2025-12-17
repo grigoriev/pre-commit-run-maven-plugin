@@ -94,6 +94,9 @@ public class PreCommitRunMojo extends AbstractMojo {
     private GlobPatternExpander globExpander;
     private PreCommitRunner runner;
 
+    /**
+     * Creates a new PreCommitRunMojo with default dependencies.
+     */
     public PreCommitRunMojo() {
         this.configParser = new PreCommitConfigParser();
         this.globExpander = null; // Lazily initialized
