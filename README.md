@@ -1,7 +1,12 @@
 # pre-commit-run-maven-plugin
 
+[![CI](https://github.com/grigoriev/pre-commit-run-maven-plugin/actions/workflows/ci.yml/badge.svg)](https://github.com/grigoriev/pre-commit-run-maven-plugin/actions/workflows/ci.yml)
 [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=grigoriev_pre-commit-run-maven-plugin&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=grigoriev_pre-commit-run-maven-plugin)
 [![Coverage](https://sonarcloud.io/api/project_badges/measure?project=grigoriev_pre-commit-run-maven-plugin&metric=coverage)](https://sonarcloud.io/summary/new_code?id=grigoriev_pre-commit-run-maven-plugin)
+[![GitHub Release](https://img.shields.io/github/v/release/grigoriev/pre-commit-run-maven-plugin)](https://github.com/grigoriev/pre-commit-run-maven-plugin/releases)
+[![Maven Central](https://img.shields.io/maven-central/v/io.github.grigoriev/pre-commit-run-maven-plugin)](https://central.sonatype.com/artifact/io.github.grigoriev/pre-commit-run-maven-plugin)
+[![Java 17+](https://img.shields.io/badge/java-17+-blue.svg)](https://openjdk.org/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 Maven plugin for running [pre-commit](https://pre-commit.com/) hooks during the Maven build lifecycle.
 
@@ -156,4 +161,4 @@ mvn clean install
 
 ## License
 
-MIT
+MIT License - see [LICENSE](LICENSE) for details.
