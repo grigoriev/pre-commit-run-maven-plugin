@@ -156,6 +156,7 @@
                         -XX:+EnableDynamicAgentLoading
                         -Xshare:off
                         -javaagent:${settings.localRepository}/org/mockito/mockito-core/${mockito.version}/mockito-core-${mockito.version}.jar
+                        -Djava.util.logging.config.file=${project.basedir}/src/test/resources/logging.properties
                     </argLine>
                     <includes>
                         <include>**/*Test.java</include>

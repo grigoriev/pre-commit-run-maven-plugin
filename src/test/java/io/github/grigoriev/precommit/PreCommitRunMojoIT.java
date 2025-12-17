@@ -1,5 +1,6 @@
 package io.github.grigoriev.precommit;
 
+import org.apache.maven.plugin.logging.Log;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -11,6 +12,7 @@ import java.nio.file.Path;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
+import static org.mockito.Mockito.mock;
 
 /**
  * Integration tests for PreCommitRunMojo that require real pre-commit installation.
@@ -46,6 +48,7 @@ class PreCommitRunMojoIT {
 
         // Use default constructor which has lazy initialization for GlobExpander
         PreCommitRunMojo mojo = new PreCommitRunMojo();
+        mojo.setLog(mock(Log.class));
         mojo.setBasedir(tempDir.toFile());
         mojo.setHooks(java.util.List.of("trailing-whitespace"));
         mojo.setPreCommitExecutable("pre-commit");
@@ -70,6 +73,7 @@ class PreCommitRunMojoIT {
 
         // Use default constructor
         PreCommitRunMojo mojo = new PreCommitRunMojo();
+        mojo.setLog(mock(Log.class));
         mojo.setBasedir(tempDir.toFile());
         mojo.setHooks(java.util.List.of("trailing-whitespace"));
         mojo.setPreCommitExecutable("pre-commit");

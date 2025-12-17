@@ -2,6 +2,7 @@ package io.github.grigoriev.precommit;
 
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
+import org.apache.maven.plugin.logging.Log;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -40,6 +41,9 @@ class PreCommitRunMojoTest {
     @Mock
     private PreCommitRunner runner;
 
+    @Mock
+    private Log log;
+
     private PreCommitRunMojo mojo;
 
     @TempDir
@@ -48,6 +52,7 @@ class PreCommitRunMojoTest {
     @BeforeEach
     void setUp() {
         mojo = new PreCommitRunMojo(configParser, runner);
+        mojo.setLog(log);
         mojo.setBasedir(tempDir.toFile());
         mojo.setHooks(List.of("test-hook"));
         mojo.setPreCommitExecutable("pre-commit");
@@ -390,6 +395,7 @@ class PreCommitRunMojoTest {
     void execute_shouldUseLazyInitializedRunnerWithTimeouts() throws Exception {
         // Use default constructor which has lazy initialization
         PreCommitRunMojo lazyMojo = new PreCommitRunMojo();
+        lazyMojo.setLog(log);
         lazyMojo.setBasedir(tempDir.toFile());
         lazyMojo.setHooks(List.of("test-hook"));
         lazyMojo.setPreCommitExecutable("non-existent-pre-commit");
