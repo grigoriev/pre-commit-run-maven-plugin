@@ -131,6 +131,21 @@ class GlobPatternExpanderTest {
     }
 
     @Test
+    void defaultConstructor_shouldHaveNoOpWarningLogger() {
+        // Create a subclass using default constructor that throws IOException
+        GlobPatternExpander throwingExpander = new GlobPatternExpander() {
+            @Override
+            protected void walkFileTree(Path startDir, java.nio.file.PathMatcher matcher, List<File> matchedFiles) throws IOException {
+                throw new IOException("Test error");
+            }
+        };
+
+        // This should not throw and should silently ignore the warning (no-op logger)
+        List<File> result = throwingExpander.expand("*.java", tempDir.toFile());
+        assertThat(result).isEmpty();
+    }
+
+    @Test
     void expand_withDefaultConstructor_shouldWork() throws IOException {
         GlobPatternExpander defaultExpander = new GlobPatternExpander();
         createFile("test.java");

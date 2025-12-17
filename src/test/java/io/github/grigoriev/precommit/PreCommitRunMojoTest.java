@@ -414,6 +414,30 @@ class PreCommitRunMojoTest {
     // Glob pattern tests
 
     @Test
+    void isGlobPattern_shouldUseLazyInitializedGlobExpander() throws Exception {
+        // Use default constructor which has lazy initialization
+        PreCommitRunMojo lazyMojo = new PreCommitRunMojo();
+        lazyMojo.setLog(log);
+
+        // This will trigger lazy initialization of GlobPatternExpander
+        assertThat(lazyMojo.isGlobPattern("*.java")).isTrue();
+        assertThat(lazyMojo.isGlobPattern("plain.txt")).isFalse();
+
+        // Trigger the warning logger to cover the lambda in getGlobExpander
+        java.lang.reflect.Field expanderField = PreCommitRunMojo.class.getDeclaredField("globExpander");
+        expanderField.setAccessible(true);
+        GlobPatternExpander expander = (GlobPatternExpander) expanderField.get(lazyMojo);
+
+        java.lang.reflect.Field loggerField = GlobPatternExpander.class.getDeclaredField("warningLogger");
+        loggerField.setAccessible(true);
+        @SuppressWarnings("unchecked")
+        java.util.function.Consumer<String> warningLogger = (java.util.function.Consumer<String>) loggerField.get(expander);
+        warningLogger.accept("Test warning message");
+
+        verify(log).warn("Test warning message");
+    }
+
+    @Test
     void isGlobPattern_shouldDetectGlobPatterns() {
         assertThat(mojo.isGlobPattern("src/**/*.java")).isTrue();
         assertThat(mojo.isGlobPattern("*.json")).isTrue();
