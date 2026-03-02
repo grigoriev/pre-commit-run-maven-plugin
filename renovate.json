@@ -3,10 +3,8 @@
   "extends": [
     "config:recommended"
   ],
-  "mode": "full",
   "dependencyDashboard": true,
   "automerge": true,
   "automergeType": "pr",
-  "platformAutomerge": false,
-  "branchConcurrentLimit": 0
+  "platformAutomerge": false
 }
