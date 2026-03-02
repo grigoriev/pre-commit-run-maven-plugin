@@ -6,6 +6,7 @@
   "mode": "full",
   "dependencyDashboard": true,
   "automerge": true,
-  "automergeType": "branch",
+  "automergeType": "pr",
+  "platformAutomerge": false,
   "branchConcurrentLimit": 0
 }
