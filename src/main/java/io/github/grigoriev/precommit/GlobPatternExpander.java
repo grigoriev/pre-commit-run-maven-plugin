@@ -1,5 +1,7 @@
 package io.github.grigoriev.precommit;
 
+import org.jetbrains.annotations.NotNull;
+
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.FileSystems;
@@ -32,7 +34,7 @@ public class GlobPatternExpander {
      *
      * @param warningLogger consumer to receive warning messages
      */
-    public GlobPatternExpander(Consumer<String> warningLogger) {
+    public GlobPatternExpander(@NotNull Consumer<String> warningLogger) {
         this.warningLogger = warningLogger;
     }
 
@@ -42,7 +44,7 @@ public class GlobPatternExpander {
      * @param path the path to check
      * @return true if the path contains glob characters
      */
-    public boolean isGlobPattern(String path) {
+    public boolean isGlobPattern(@NotNull String path) {
         return path.contains("*") || path.contains("?") || path.contains("[");
     }
 
@@ -53,7 +55,7 @@ public class GlobPatternExpander {
      * @param baseDir the base directory to search in
      * @return list of matching files
      */
-    public List<File> expand(String pattern, File baseDir) {
+    public @NotNull List<File> expand(@NotNull String pattern, @NotNull File baseDir) {
         List<File> matchedFiles = new ArrayList<>();
         Path startDir = baseDir.toPath();
 
@@ -78,10 +80,10 @@ public class GlobPatternExpander {
      * @param matchedFiles list to collect matching files into
      * @throws IOException if an I/O error occurs while walking the file tree
      */
-    protected void walkFileTree(Path startDir, PathMatcher matcher, List<File> matchedFiles) throws IOException {
+    protected void walkFileTree(@NotNull Path startDir, @NotNull PathMatcher matcher, @NotNull List<File> matchedFiles) throws IOException {
         Files.walkFileTree(startDir, new SimpleFileVisitor<>() {
             @Override
-            public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) {
+            public @NotNull FileVisitResult visitFile(@NotNull Path file, @NotNull BasicFileAttributes attrs) {
                 Path relativePath = startDir.relativize(file);
                 if (matcher.matches(relativePath)) {
                     matchedFiles.add(file.toFile());
@@ -90,7 +92,7 @@ public class GlobPatternExpander {
             }
 
             @Override
-            public FileVisitResult visitFileFailed(Path file, IOException exc) {
+            public @NotNull FileVisitResult visitFileFailed(Path file, @NotNull IOException exc) {
                 return FileVisitResult.CONTINUE;
             }
         });

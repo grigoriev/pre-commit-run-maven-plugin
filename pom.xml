@@ -62,6 +62,7 @@
         <maven-plugin-plugin.version>3.15.2</maven-plugin-plugin.version>
 
         <snakeyaml.version>2.6</snakeyaml.version>
+        <jetbrains-annotations.version>26.0.2</jetbrains-annotations.version>
 
         <junit.version>6.0.3</junit.version>
         <assertj.version>3.27.7</assertj.version>
@@ -100,6 +101,14 @@
             <groupId>org.yaml</groupId>
             <artifactId>snakeyaml</artifactId>
             <version>${snakeyaml.version}</version>
+        </dependency>
+
+        <!-- Static analysis annotations -->
+        <dependency>
+            <groupId>org.jetbrains</groupId>
+            <artifactId>annotations</artifactId>
+            <version>${jetbrains-annotations.version}</version>
+            <scope>provided</scope>
         </dependency>
 
         <!-- Testing -->

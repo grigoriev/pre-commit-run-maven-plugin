@@ -1,5 +1,8 @@
 package io.github.grigoriev.precommit;
 
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
@@ -40,7 +43,7 @@ public class PreCommitRunner {
      * @param executable the pre-commit executable name or path
      * @return true if pre-commit is available
      */
-    public boolean isPreCommitInstalled(String executable) {
+    public boolean isPreCommitInstalled(@NotNull String executable) {
         try {
             ProcessBuilder pb = new ProcessBuilder(executable, "--version");
             pb.redirectErrorStream(true);
@@ -66,7 +69,7 @@ public class PreCommitRunner {
         }
     }
 
-    private void drainStream(InputStream inputStream) {
+    private void drainStream(@NotNull InputStream inputStream) {
         try {
             inputStream.transferTo(OutputStream.nullOutputStream());
         } catch (IOException e) {
@@ -83,7 +86,7 @@ public class PreCommitRunner {
      * @param workingDir the working directory
      * @return the result containing exit code and output
      */
-    public Result runHook(String executable, String hookId, List<File> files, File workingDir) {
+    public @NotNull Result runHook(@NotNull String executable, @NotNull String hookId, @NotNull List<File> files, @NotNull File workingDir) {
         return runHook(executable, hookId, files, workingDir, null);
     }
 
@@ -97,8 +100,8 @@ public class PreCommitRunner {
      * @param environmentVariables additional environment variables (can be null)
      * @return the result containing exit code and output
      */
-    public Result runHook(String executable, String hookId, List<File> files, File workingDir,
-                          Map<String, String> environmentVariables) {
+    public @NotNull Result runHook(@NotNull String executable, @NotNull String hookId, @NotNull List<File> files, @NotNull File workingDir,
+                          @Nullable Map<String, String> environmentVariables) {
         List<String> command = buildCommand(executable, hookId, files);
 
         try {
@@ -133,7 +136,7 @@ public class PreCommitRunner {
         }
     }
 
-    private List<String> buildCommand(String executable, String hookId, List<File> files) {
+    private @NotNull List<String> buildCommand(@NotNull String executable, @NotNull String hookId, @Nullable List<File> files) {
         List<String> command = new ArrayList<>();
         command.add(executable);
         command.add("run");
@@ -148,11 +151,11 @@ public class PreCommitRunner {
         return command;
     }
 
-    private Thread createOutputReaderThread(Process process, StringBuilder output) {
+    private @NotNull Thread createOutputReaderThread(@NotNull Process process, @NotNull StringBuilder output) {
         return new Thread(() -> readProcessOutput(process.getInputStream(), output));
     }
 
-    void readProcessOutput(InputStream inputStream, StringBuilder output) {
+    void readProcessOutput(@NotNull InputStream inputStream, @NotNull StringBuilder output) {
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream))) {
             String line;
             while ((line = reader.readLine()) != null) {
@@ -172,7 +175,7 @@ public class PreCommitRunner {
      * @param exitCode the process exit code
      * @param output   the process output
      */
-    public record Result(int exitCode, String output) {
+    public record Result(int exitCode, @NotNull String output) {
 
         /**
          * Returns the exit code of the pre-commit process.
@@ -188,7 +191,7 @@ public class PreCommitRunner {
          *
          * @return the process output
          */
-        public String getOutput() {
+        public @NotNull String getOutput() {
             return output;
         }
 
