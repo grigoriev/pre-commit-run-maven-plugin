@@ -6,6 +6,8 @@ import org.apache.maven.plugin.MojoFailureException;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -103,20 +105,20 @@ public class PreCommitRunMojo extends AbstractMojo {
         this.runner = null; // Lazily initialized with timeout values
     }
 
-    PreCommitRunMojo(PreCommitConfigParser configParser, PreCommitRunner runner) {
+    PreCommitRunMojo(@NotNull PreCommitConfigParser configParser, @NotNull PreCommitRunner runner) {
         this.configParser = configParser;
         this.globExpander = new GlobPatternExpander();
         this.runner = runner;
     }
 
-    private GlobPatternExpander getGlobExpander() {
+    private @NotNull GlobPatternExpander getGlobExpander() {
         if (globExpander == null) {
             globExpander = new GlobPatternExpander(message -> getLog().warn(message));
         }
         return globExpander;
     }
 
-    private PreCommitRunner getRunner() {
+    private @NotNull PreCommitRunner getRunner() {
         if (runner == null) {
             runner = new PreCommitRunner(timeout, installCheckTimeout);
         }
@@ -157,7 +159,7 @@ public class PreCommitRunMojo extends AbstractMojo {
         runHooksAndHandleResults(configuredHooks, resolvedFiles);
     }
 
-    private List<String> getEffectiveHooks() {
+    private @NotNull List<String> getEffectiveHooks() {
         if (hooks != null && !hooks.isEmpty()) {
             return hooks;
         }
@@ -175,7 +177,7 @@ public class PreCommitRunMojo extends AbstractMojo {
         throw new MojoFailureException("pre-commit is not installed or not in PATH");
     }
 
-    private File getConfigFileIfExists() throws MojoFailureException {
+    private @Nullable File getConfigFileIfExists() throws MojoFailureException {
         File configFile = new File(basedir, ".pre-commit-config.yaml");
         if (configFile.exists()) {
             return configFile;
@@ -187,7 +189,7 @@ public class PreCommitRunMojo extends AbstractMojo {
         throw new MojoFailureException(".pre-commit-config.yaml not found in " + basedir);
     }
 
-    private List<String> filterConfiguredHooks(File configFile, List<String> hooksToCheck) throws MojoFailureException {
+    private @NotNull List<String> filterConfiguredHooks(@NotNull File configFile, @NotNull List<String> hooksToCheck) throws MojoFailureException {
         List<String> configuredHooks = new ArrayList<>();
         List<String> missingHooks = new ArrayList<>();
 
@@ -211,7 +213,7 @@ public class PreCommitRunMojo extends AbstractMojo {
         return configuredHooks;
     }
 
-    private List<File> resolveAndValidateFiles() {
+    private @NotNull List<File> resolveAndValidateFiles() {
         List<File> resolvedFiles = resolveFiles();
         List<File> existingFiles = new ArrayList<>();
         List<String> missingFiles = new ArrayList<>();
@@ -231,7 +233,7 @@ public class PreCommitRunMojo extends AbstractMojo {
         return existingFiles;
     }
 
-    private List<File> resolveFiles() {
+    private @NotNull List<File> resolveFiles() {
         if (files == null || files.isEmpty()) {
             return List.of();
         }
@@ -247,24 +249,24 @@ public class PreCommitRunMojo extends AbstractMojo {
         return resolvedFiles;
     }
 
-    boolean isGlobPattern(String path) {
+    boolean isGlobPattern(@NotNull String path) {
         return getGlobExpander().isGlobPattern(path);
     }
 
-    private void runHooksAndHandleResults(List<String> hooksToRun, List<File> resolvedFiles) throws MojoFailureException {
+    private void runHooksAndHandleResults(@NotNull List<String> hooksToRun, @NotNull List<File> resolvedFiles) throws MojoFailureException {
         for (String hook : hooksToRun) {
             runSingleHook(hook, resolvedFiles);
         }
     }
 
-    private void runSingleHook(String hook, List<File> resolvedFiles) throws MojoFailureException {
+    private void runSingleHook(@NotNull String hook, @NotNull List<File> resolvedFiles) throws MojoFailureException {
         getLog().info("Running pre-commit hook '" + hook + "' on " + resolvedFiles.size() + " file(s)");
         PreCommitRunner.Result result = getRunner().runHook(preCommitExecutable, hook, resolvedFiles, basedir, environmentVariables);
         logOutput(result);
         handleExitCode(hook, result.getExitCode());
     }
 
-    private void logOutput(PreCommitRunner.Result result) {
+    private void logOutput(@NotNull PreCommitRunner.Result result) {
         String output = result.getOutput();
         if (output != null && !output.isEmpty()) {
             for (String line : output.split("\n")) {
@@ -273,7 +275,7 @@ public class PreCommitRunMojo extends AbstractMojo {
         }
     }
 
-    private void handleExitCode(String hook, int exitCode) throws MojoFailureException {
+    private void handleExitCode(@NotNull String hook, int exitCode) throws MojoFailureException {
         if (exitCode == 0) {
             getLog().info(HOOK_PREFIX + hook + "' passed (no changes needed)");
             return;
@@ -285,7 +287,7 @@ public class PreCommitRunMojo extends AbstractMojo {
         throw new MojoFailureException(HOOK_PREFIX + hook + "' failed with exit code " + exitCode);
     }
 
-    private void handleModification(String hook) throws MojoFailureException {
+    private void handleModification(@NotNull String hook) throws MojoFailureException {
         if (failOnModification) {
             throw new MojoFailureException(HOOK_PREFIX + hook + "' modified files. " +
                     "Review the changes and commit them, or set failOnModification=false");
@@ -293,15 +295,15 @@ public class PreCommitRunMojo extends AbstractMojo {
         getLog().info(HOOK_PREFIX + hook + "' modified files");
     }
 
-    void setBasedir(File basedir) {
+    void setBasedir(@NotNull File basedir) {
         this.basedir = basedir;
     }
 
-    void setHooks(List<String> hooks) {
+    void setHooks(@Nullable List<String> hooks) {
         this.hooks = hooks;
     }
 
-    void setFiles(List<String> files) {
+    void setFiles(@Nullable List<String> files) {
         this.files = files;
     }
 
@@ -325,11 +327,11 @@ public class PreCommitRunMojo extends AbstractMojo {
         this.skip = skip;
     }
 
-    void setPreCommitExecutable(String preCommitExecutable) {
+    void setPreCommitExecutable(@NotNull String preCommitExecutable) {
         this.preCommitExecutable = preCommitExecutable;
     }
 
-    void setEnvironmentVariables(Map<String, String> environmentVariables) {
+    void setEnvironmentVariables(@Nullable Map<String, String> environmentVariables) {
         this.environmentVariables = environmentVariables;
     }
 

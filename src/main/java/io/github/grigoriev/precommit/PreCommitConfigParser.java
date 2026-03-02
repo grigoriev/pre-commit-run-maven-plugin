@@ -1,5 +1,7 @@
 package io.github.grigoriev.precommit;
 
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.yaml.snakeyaml.LoaderOptions;
 import org.yaml.snakeyaml.Yaml;
 import org.yaml.snakeyaml.constructor.SafeConstructor;
@@ -35,7 +37,7 @@ public class PreCommitConfigParser {
      * @param hookId     the hook ID or alias to look for
      * @return true if the hook is found
      */
-    public boolean isHookConfigured(File configFile, String hookId) {
+    public boolean isHookConfigured(@Nullable File configFile, @NotNull String hookId) {
         if (configFile == null || !configFile.exists()) {
             return false;
         }
@@ -55,7 +57,7 @@ public class PreCommitConfigParser {
      * @param hookId      the hook ID or alias to look for
      * @return true if the hook is found
      */
-    public boolean isHookConfigured(InputStream inputStream, String hookId) {
+    public boolean isHookConfigured(@Nullable InputStream inputStream, @Nullable String hookId) {
         if (inputStream == null || hookId == null || hookId.isEmpty()) {
             return false;
         }
@@ -72,7 +74,7 @@ public class PreCommitConfigParser {
         }
     }
 
-    private Map<String, Object> parseYaml(InputStream inputStream) {
+    private @NotNull Map<String, Object> parseYaml(@NotNull InputStream inputStream) {
         LoaderOptions options = new LoaderOptions();
         Yaml yaml = new Yaml(new SafeConstructor(options));
         Map<String, Object> config = yaml.load(inputStream);
@@ -80,7 +82,7 @@ public class PreCommitConfigParser {
     }
 
     @SuppressWarnings("unchecked")
-    private List<Map<String, Object>> getRepos(Map<String, Object> config) {
+    private @NotNull List<Map<String, Object>> getRepos(@NotNull Map<String, Object> config) {
         Object repos = config.get("repos");
         if (repos instanceof List<?> repoList) {
             return repoList.stream()
@@ -92,7 +94,7 @@ public class PreCommitConfigParser {
     }
 
     @SuppressWarnings("unchecked")
-    private List<Map<String, Object>> getHooks(Map<String, Object> repo) {
+    private @NotNull List<Map<String, Object>> getHooks(@NotNull Map<String, Object> repo) {
         Object hooks = repo.get("hooks");
         if (hooks instanceof List<?> hookList) {
             return hookList.stream()
