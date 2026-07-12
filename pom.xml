@@ -64,7 +64,7 @@
         <snakeyaml.version>2.6</snakeyaml.version>
         <jetbrains-annotations.version>26.1.0</jetbrains-annotations.version>
 
-        <junit.version>6.1.1</junit.version>
+        <junit.version>6.1.2</junit.version>
         <assertj.version>3.27.7</assertj.version>
         <mockito.version>5.23.0</mockito.version>
 
