@@ -268,7 +268,7 @@ public class PreCommitRunMojo extends AbstractMojo {
 
     private void logOutput(@NotNull PreCommitRunner.Result result) {
         String output = result.getOutput();
-        if (output != null && !output.isEmpty()) {
+        if (!output.isEmpty()) {
             for (String line : output.split("\n")) {
                 getLog().info(line);
             }
