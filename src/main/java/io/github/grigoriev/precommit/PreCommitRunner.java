@@ -178,6 +178,16 @@ public class PreCommitRunner {
     public record Result(int exitCode, @NotNull String output) {
 
         /**
+         * Normalizes a null output to an empty string so {@link #getOutput()}
+         * always honors its {@code @NotNull} contract.
+         */
+        public Result {
+            if (output == null) {
+                output = "";
+            }
+        }
+
+        /**
          * Returns the exit code of the pre-commit process.
          *
          * @return the exit code
