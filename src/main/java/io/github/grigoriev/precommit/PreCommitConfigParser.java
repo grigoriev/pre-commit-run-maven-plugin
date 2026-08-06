@@ -45,7 +45,7 @@ public class PreCommitConfigParser {
         try (InputStream is = new FileInputStream(configFile)) {
             return isHookConfigured(is, hookId);
         } catch (IOException e) {
-            LOGGER.log(Level.WARNING, "Failed to read pre-commit config file: " + configFile.getPath(), e);
+            LOGGER.log(Level.WARNING, e, () -> "Failed to read pre-commit config file: " + configFile.getPath());
             return false;
         }
     }

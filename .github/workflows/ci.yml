@@ -46,7 +46,8 @@ jobs:
           python-version: "3.14"
 
       - name: Install pre-commit
-        run: pip install pre-commit
+        run: |
+          pip install --only-binary=:all: "pre-commit==4.6.1"
 
       - name: Run integration tests
         run: mvn -B test -Dtest="*IT"
@@ -82,12 +83,14 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          HEAD_REF: ${{ github.head_ref }}
+          BASE_REF: ${{ github.base_ref }}
         run: |
           if [ "${{ github.event_name }}" = "pull_request" ]; then
             mvn -B verify sonar:sonar \
               -Dsonar.pullrequest.key=${{ github.event.pull_request.number }} \
-              -Dsonar.pullrequest.branch=${{ github.head_ref }} \
-              -Dsonar.pullrequest.base=${{ github.base_ref }} \
+              -Dsonar.pullrequest.branch="$HEAD_REF" \
+              -Dsonar.pullrequest.base="$BASE_REF" \
               -Dsonar.qualitygate.wait=true
           else
             mvn -B verify sonar:sonar -Dsonar.qualitygate.wait=true

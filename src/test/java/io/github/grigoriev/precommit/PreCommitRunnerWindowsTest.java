@@ -149,12 +149,6 @@ class PreCommitRunnerWindowsTest {
         testThread.join(5000);
     }
 
-    private File createTestFile(String name) throws IOException {
-        Path filePath = tempDir.resolve(name);
-        Files.writeString(filePath, "test content");
-        filePath.toFile().deleteOnExit();
-        return filePath.toFile();
-    }
 
     // Concurrent execution tests
 
