@@ -17,6 +17,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Suppressed log output during tests for cleaner test runs
 - Create the GitHub release with `gh release create` instead of a third-party action
 
+### Fixed
+- Run CI once per commit on Renovate branches: `renovate/**` is no longer in the push
+  trigger, so a failing push run of the sonar check no longer blocks automerge
+- A patch release publishes the development version as it stands, instead of skipping
+  a version
+
 ### Security
 - Harden the GitHub Actions workflows: least-privilege token permissions, no persisted
   checkout credentials, template values passed through `env:`, no dependency cache in the

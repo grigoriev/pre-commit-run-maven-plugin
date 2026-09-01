@@ -47,6 +47,10 @@ jobs:
           CURRENT_VERSION: ${{ steps.current.outputs.version }}
           BUMP_TYPE: ${{ inputs.bump_type }}
         run: |
+          # The pom already holds the next development version: release.yml advanced it
+          # after the previous release. A patch release therefore publishes it as it
+          # stands. Incrementing here as well skips a number: it made the first release
+          # of this project 0.1.1 rather than 0.1.0.
           IFS='.' read -r major minor patch <<< "$CURRENT_VERSION"
           case "$BUMP_TYPE" in
             major)
@@ -59,7 +63,6 @@ jobs:
               patch=0
               ;;
             patch)
-              patch=$((patch + 1))
               ;;
           esac
           NEW_VERSION="${major}.${minor}.${patch}"
