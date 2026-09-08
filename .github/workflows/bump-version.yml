@@ -41,6 +41,10 @@ jobs:
       - name: Calculate new version
         id: new
         run: |
+          # The pom already holds the next development version: release.yml advanced it
+          # after the previous release. A patch release therefore publishes it as it
+          # stands. Incrementing here as well would skip a number, and would have made
+          # the first release of this project 0.1.0 rather than 0.1.1.
           IFS='.' read -r major minor patch <<< "${{ steps.current.outputs.version }}"
           case "${{ inputs.bump_type }}" in
             major)
@@ -53,7 +57,6 @@ jobs:
               patch=0
               ;;
             patch)
-              patch=$((patch + 1))
               ;;
           esac
           NEW_VERSION="${major}.${minor}.${patch}"
