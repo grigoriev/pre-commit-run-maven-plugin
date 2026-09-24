@@ -78,7 +78,14 @@ jobs:
         run: |
           # The signed provenance bundle travels with the files.
           cp "$BUNDLE" "target/pre-commit-run-maven-plugin-${GITHUB_REF_NAME#v}.intoto.jsonl"
-          gh release create "$GITHUB_REF_NAME" --generate-notes target/*.jar target/*.pom target/*.intoto.jsonl
+          # A rerun replaces the files of the existing release.
+          if gh release view "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" > /dev/null 2>&1; then
+            gh release upload "$GITHUB_REF_NAME" target/*.jar target/*.pom target/*.intoto.jsonl \
+              --repo "$GITHUB_REPOSITORY" --clobber
+          else
+            gh release create "$GITHUB_REF_NAME" target/*.jar target/*.pom target/*.intoto.jsonl \
+              --repo "$GITHUB_REPOSITORY" --generate-notes
+          fi
 
   bump-to-snapshot:
     runs-on: ubuntu-latest
