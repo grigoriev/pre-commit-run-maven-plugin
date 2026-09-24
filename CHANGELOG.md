@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Suppressed log output during tests for cleaner test runs
 - Create the GitHub release with `gh release create` instead of a third-party action
+- Renovate takes its common rules from the shared preset `github>grigoriev/renovate-config`, which also turns on OSV vulnerability alerts.
 
 ### Fixed
 - Run CI once per commit on Renovate branches: `renovate/**` is no longer in the push
