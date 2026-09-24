@@ -9,30 +9,9 @@ permissions:
   contents: read
 
 jobs:
-  test:
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        java-version: ["17", "21", "25"]
-
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-
-      - name: Set up JDK ${{ matrix.java-version }}
-        uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
-        with:
-          java-version: ${{ matrix.java-version }}
-          distribution: "temurin"
-
-      - name: Build and test
-        run: mvn -B clean verify
-
   publish:
     runs-on: ubuntu-latest
-    needs: test
+    timeout-minutes: 30
     permissions:
       contents: write
       id-token: write
@@ -43,29 +22,56 @@ jobs:
         with:
           persist-credentials: false
 
+      # No Maven cache: a cache written by another run could reach the
+      # published artifact (zizmor cache-poisoning).
       - name: Set up JDK 25
         uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
         with:
           java-version: "25.0.4+101.0.LTS"
           distribution: "temurin"
           server-id: central
-          server-username: MAVEN_USERNAME
-          server-password: MAVEN_PASSWORD
+          server-username-env-var: MAVEN_USERNAME
+          server-password-env-var: MAVEN_PASSWORD
           gpg-private-key: ${{ secrets.GPG_PRIVATE_KEY }}
-          gpg-passphrase: MAVEN_GPG_PASSPHRASE
+          gpg-passphrase-env-var: MAVEN_GPG_PASSPHRASE
+
+      # The integration tests run pre-commit. Without it they skip themselves.
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.14"
+
+      - name: Install pre-commit
+        run: |
+          pip install --only-binary=:all: --require-hashes -r .github/requirements/pre-commit.txt
 
       # The notes come from the CHANGELOG.md section that bump-version.yml cut.
       # A tag without that section fails here, before anything is published.
       - name: Read the release notes from CHANGELOG.md
         run: .github/scripts/changelog-section.sh "${GITHUB_REF_NAME#v}" "$GITHUB_REPOSITORY" > "$RUNNER_TEMP/release-notes.md"
 
-      - name: Publish to Maven Central
-        run: mvn -B deploy -Prelease -DskipTests
+      # Releases are immutable: the release gets all its files in the one create
+      # call below. A tag that has a release already stops here, before the deploy.
+      - name: Refuse an existing release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" > /dev/null 2>&1; then
+            echo "::error::Release $GITHUB_REF_NAME exists. Releases are immutable: release a new version."
+            exit 1
+          fi
+
+      # deploy walks the whole lifecycle, so the unit and integration tests run
+      # here, on the tree that is published. A separate test job would build
+      # the project twice and publish a tree other than the tested one.
+      - name: Test and publish to Maven Central
+        run: mvn -B clean deploy -Prelease
         env:
           MAVEN_USERNAME: ${{ secrets.SONATYPE_USERNAME }}
           MAVEN_PASSWORD: ${{ secrets.SONATYPE_TOKEN }}
           MAVEN_GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
 
+      # Signs the provenance of the files deployed above, not of a rebuild.
       # The gpg plugin copies pom.xml to target/ before it signs it, so
       # target/*.pom holds the same bytes as the deployed pom.
       - name: Attest build provenance
@@ -83,26 +89,23 @@ jobs:
         run: |
           # The signed provenance bundle travels with the files.
           cp "$BUNDLE" "target/pre-commit-run-maven-plugin-${GITHUB_REF_NAME#v}.intoto.jsonl"
-          # A rerun replaces the files of the existing release.
-          if gh release view "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" > /dev/null 2>&1; then
-            gh release upload "$GITHUB_REF_NAME" target/*.jar target/*.pom target/*.intoto.jsonl \
-              --repo "$GITHUB_REPOSITORY" --clobber
-          else
-            gh release create "$GITHUB_REF_NAME" target/*.jar target/*.pom target/*.intoto.jsonl \
-              --repo "$GITHUB_REPOSITORY" --notes-file "$RUNNER_TEMP/release-notes.md"
-          fi
+          gh release create "$GITHUB_REF_NAME" target/*.jar target/*.pom target/*.intoto.jsonl \
+            --repo "$GITHUB_REPOSITORY" --notes-file "$RUNNER_TEMP/release-notes.md"
 
   bump-to-snapshot:
     runs-on: ubuntu-latest
     needs: publish
+    timeout-minutes: 10
     permissions:
       contents: write
 
     steps:
+      # persist-credentials: false, so no token lands in .git/config while Maven
+      # runs its plugins. PAT_TOKEN reaches only the step that pushes.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with: # zizmor: ignore[artipacked] the Commit and push step pushes with PAT_TOKEN
+        with:
           ref: main
-          token: ${{ secrets.PAT_TOKEN }}
+          persist-credentials: false
 
       - name: Set up JDK 25
         uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
@@ -126,12 +129,22 @@ jobs:
         run: |
           mvn versions:set "-DnewVersion=${NEXT_VERSION}" -DgenerateBackupPoms=false
 
+      # PAT_TOKEN, not GITHUB_TOKEN: the ruleset lets only the admin push to main.
       - name: Commit and push
         env:
           NEXT_VERSION: ${{ steps.snapshot.outputs.version }}
+          PAT_TOKEN: ${{ secrets.PAT_TOKEN }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add pom.xml
           git commit -m "chore: bump to ${NEXT_VERSION} for development"
-          git push origin main
+          # The token reaches git through GIT_ASKPASS, so the remote URL holds no
+          # credential. A URL with the token would show in the process list and in
+          # the output of a failed push. The helper reads the token from the env.
+          # shellcheck disable=SC2016  # $PAT_TOKEN is read when the helper runs
+          printf '#!/bin/sh\nexec echo "$PAT_TOKEN"\n' > "$RUNNER_TEMP/askpass.sh"
+          chmod +x "$RUNNER_TEMP/askpass.sh"
+          export GIT_ASKPASS="$RUNNER_TEMP/askpass.sh"
+          REMOTE="https://x-access-token@github.com/${GITHUB_REPOSITORY}.git"
+          git push "$REMOTE" main
