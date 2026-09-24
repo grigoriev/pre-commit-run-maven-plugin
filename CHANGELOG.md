@@ -25,6 +25,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   a version
 - A patch release after a failed snapshot bump takes the next version instead of
   failing on the existing tag
+- A rerun of the release workflow uploads the files to the existing release instead
+  of failing
 - Name the JDK 25 setup steps after the version they install
 
 ### Security
