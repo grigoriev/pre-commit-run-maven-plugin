@@ -11,9 +11,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Checkstyle integration with Google style (4-space indentation, 160 char line limit)
 - Commitizen configuration for conventional commits
 - CONTRIBUTING.md with development guidelines
+- Disclaimer section in the README
 
 ### Changed
 - Suppressed log output during tests for cleaner test runs
+- Create the GitHub release with `gh release create` instead of a third-party action
+
+### Security
+- Harden the GitHub Actions workflows: least-privilege token permissions, no persisted
+  checkout credentials, template values passed through `env:`, no dependency cache in the
+  release workflow
+- Add an actionlint and zizmor `lint` job to CI
+- Add the OpenSSF Scorecard workflow and badge
+- Let Renovate pin GitHub Actions by commit digest
 
 ## [1.0.0] - 2024-12-16
 
