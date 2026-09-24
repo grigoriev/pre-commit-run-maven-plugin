@@ -73,7 +73,7 @@ jobs:
 
       - name: Install pre-commit
         run: |
-          pip install --only-binary=:all: "pre-commit==4.6.1"
+          pip install --only-binary=:all: --require-hashes -r .github/requirements/pre-commit.txt
 
       - name: Run integration tests
         run: mvn -B test -Dtest="*IT"

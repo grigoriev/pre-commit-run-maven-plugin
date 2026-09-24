@@ -32,6 +32,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   checkout credentials, template values passed through `env:`, no dependency cache in the
   release workflow
 - Add an actionlint and zizmor `lint` job to CI
+- Install pre-commit in CI from a hash-pinned requirements file
 - Add the OpenSSF Scorecard workflow and badge
 - Let Renovate pin GitHub Actions by commit digest
 - Attach the pom and a signed build provenance bundle (`*.intoto.jsonl`) to each GitHub release
