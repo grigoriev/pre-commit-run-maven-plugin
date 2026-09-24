@@ -40,7 +40,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Let Renovate pin GitHub Actions by commit digest
 - Attach the pom and a signed build provenance bundle (`*.intoto.jsonl`) to each GitHub release
 
-## [1.0.0] - 2024-12-16
+## [1.0.0] - 2025-12-16
 
 ### Added
 - Support for glob patterns in file paths (e.g., `src/**/*.java`)
@@ -75,7 +75,7 @@ Replace `hookId` with `hooks`:
 </configuration>
 ```
 
-## [0.2.0] - 2024-12-15
+## [0.2.0] - 2025-12-16
 
 ### Added
 - Support for running multiple hooks sequentially with `hooks` parameter
@@ -86,7 +86,7 @@ Replace `hookId` with `hooks`:
 - Stream handling blocking issue in PreCommitRunner
 - Windows temp directory cleanup issues in tests
 
-## [0.1.0] - 2024-12-14
+## [0.1.1] - 2025-12-15
 
 ### Added
 - Initial release
@@ -98,5 +98,5 @@ Replace `hookId` with `hooks`:
 
 [Unreleased]: https://github.com/grigoriev/pre-commit-run-maven-plugin/compare/v1.0.0...HEAD
 [1.0.0]: https://github.com/grigoriev/pre-commit-run-maven-plugin/compare/v0.2.0...v1.0.0
-[0.2.0]: https://github.com/grigoriev/pre-commit-run-maven-plugin/compare/v0.1.0...v0.2.0
-[0.1.0]: https://github.com/grigoriev/pre-commit-run-maven-plugin/releases/tag/v0.1.0
+[0.2.0]: https://github.com/grigoriev/pre-commit-run-maven-plugin/compare/v0.1.1...v0.2.0
+[0.1.1]: https://github.com/grigoriev/pre-commit-run-maven-plugin/releases/tag/v0.1.1
