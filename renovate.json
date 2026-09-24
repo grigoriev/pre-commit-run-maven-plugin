@@ -9,6 +9,11 @@
   "automergeType": "pr",
   "platformAutomerge": false,
   "pinDigests": true,
+  "pip-compile": {
+    "managerFilePatterns": [
+      "/^\\.github/requirements/pre-commit\\.txt$/"
+    ]
+  },
   "packageRules": [
     {
       "matchUpdateTypes": [
