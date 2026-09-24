@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Commitizen configuration for conventional commits
 - CONTRIBUTING.md with development guidelines
 - Disclaimer section in the README
+- Test on Java 25 next to 17 and 21
 
 ### Changed
 - Suppressed log output during tests for cleaner test runs
@@ -22,6 +23,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   trigger, so a failing push run of the sonar check no longer blocks automerge
 - A patch release publishes the development version as it stands, instead of skipping
   a version
+- A patch release after a failed snapshot bump takes the next version instead of
+  failing on the existing tag
+- Name the JDK 25 setup steps after the version they install
 
 ### Security
 - Harden the GitHub Actions workflows: least-privilege token permissions, no persisted
