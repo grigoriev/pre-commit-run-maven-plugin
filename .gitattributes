@@ -1,2 +1,6 @@
+# Normalize line endings: text files are stored and checked out with LF on all
+# platforms, Windows included. The tests compare file content byte for byte.
+* text=auto eol=lf
+
 # Ensure test JSON file keeps LF line endings on all platforms
 src/test/resources/integration/*.json text eol=lf

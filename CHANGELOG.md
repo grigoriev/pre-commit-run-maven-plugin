@@ -10,6 +10,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - The version bump moves the Unreleased entries of this changelog into a section for
   the new version. The GitHub release takes its notes from that section.
+- The release workflow tests and publishes the same tree: `mvn clean deploy` runs the unit
+  and integration tests before the upload, instead of a separate test job and a deploy
+  with `-DskipTests`.
+- Align the repository with the shared baseline: workflow values reach `run:` through
+  `env:`, CI jobs have time limits, the version bumps push without stored credentials,
+  a release run fails when the release exists already, and all text files use LF.
 
 ## [1.1.0] - 2026-09-24
 
