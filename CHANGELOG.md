@@ -16,6 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Align the repository with the shared baseline: workflow values reach `run:` through
   `env:`, CI jobs have time limits, the version bumps push without stored credentials,
   a release run fails when the release exists already, and all text files use LF.
+- Renovate updates the hashed pre-commit requirements of CI again: the file header
+  uses only options Renovate supports, and the shared preset finds the file.
 
 ## [1.1.0] - 2026-09-24
 
