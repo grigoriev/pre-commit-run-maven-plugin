@@ -1,25 +1,11 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
-    "config:recommended",
-    "helpers:pinGitHubActionDigests"
+    "github>grigoriev/renovate-config"
   ],
-  "dependencyDashboard": true,
-  "automerge": true,
-  "automergeType": "pr",
-  "platformAutomerge": false,
-  "pinDigests": true,
   "pip-compile": {
     "managerFilePatterns": [
       "/^\\.github/requirements/pre-commit\\.txt$/"
     ]
-  },
-  "packageRules": [
-    {
-      "matchUpdateTypes": [
-        "major"
-      ],
-      "dependencyDashboardApproval": false
-    }
-  ]
+  }
 }
