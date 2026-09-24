@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- The version bump moves the Unreleased entries of this changelog into a section for
+  the new version. The GitHub release takes its notes from that section.
+
+## [1.1.0] - 2026-09-24
+
 ### Added
 - Checkstyle integration with Google style (4-space indentation, 160 char line limit)
 - Commitizen configuration for conventional commits
@@ -96,7 +102,8 @@ Replace `hookId` with `hooks`:
 - Validation of hook existence in `.pre-commit-config.yaml`
 - Support for custom pre-commit executable path
 
-[Unreleased]: https://github.com/grigoriev/pre-commit-run-maven-plugin/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/grigoriev/pre-commit-run-maven-plugin/compare/v1.1.0...HEAD
+[1.1.0]: https://github.com/grigoriev/pre-commit-run-maven-plugin/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/grigoriev/pre-commit-run-maven-plugin/compare/v0.2.0...v1.0.0
 [0.2.0]: https://github.com/grigoriev/pre-commit-run-maven-plugin/compare/v0.1.1...v0.2.0
 [0.1.1]: https://github.com/grigoriev/pre-commit-run-maven-plugin/releases/tag/v0.1.1
