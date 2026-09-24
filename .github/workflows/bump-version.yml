@@ -12,6 +12,9 @@ on:
           - minor
           - major
 
+permissions:
+  contents: read
+
 jobs:
   bump-and-release:
     runs-on: ubuntu-latest
@@ -20,7 +23,7 @@ jobs:
 
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
+        with: # zizmor: ignore[artipacked] the Commit and tag step pushes with PAT_TOKEN
           fetch-depth: 0
           token: ${{ secrets.PAT_TOKEN }}
 
@@ -35,14 +38,17 @@ jobs:
         id: current
         run: |
           VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout | sed 's/-SNAPSHOT//')
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "Current version: $VERSION"
 
       - name: Calculate new version
         id: new
+        env:
+          CURRENT_VERSION: ${{ steps.current.outputs.version }}
+          BUMP_TYPE: ${{ inputs.bump_type }}
         run: |
-          IFS='.' read -r major minor patch <<< "${{ steps.current.outputs.version }}"
-          case "${{ inputs.bump_type }}" in
+          IFS='.' read -r major minor patch <<< "$CURRENT_VERSION"
+          case "$BUMP_TYPE" in
             major)
               major=$((major + 1))
               minor=0
@@ -57,34 +63,45 @@ jobs:
               ;;
           esac
           NEW_VERSION="${major}.${minor}.${patch}"
-          echo "version=$NEW_VERSION" >> $GITHUB_OUTPUT
+          echo "version=$NEW_VERSION" >> "$GITHUB_OUTPUT"
           echo "New version: $NEW_VERSION"
 
       - name: Update version in pom.xml
+        env:
+          NEW_VERSION: ${{ steps.new.outputs.version }}
         run: |
-          mvn versions:set -DnewVersion=${{ steps.new.outputs.version }} -DgenerateBackupPoms=false
+          mvn versions:set "-DnewVersion=${NEW_VERSION}" -DgenerateBackupPoms=false
           cat pom.xml | grep -A1 '<artifactId>pre-commit-run-maven-plugin</artifactId>'
 
       - name: Update version in README.md
+        env:
+          NEW_VERSION: ${{ steps.new.outputs.version }}
         run: |
-          sed -i 's/<version>[0-9]*\.[0-9]*\.[0-9]*<\/version>/<version>${{ steps.new.outputs.version }}<\/version>/g' README.md || true
+          sed -i "s/<version>[0-9]*\.[0-9]*\.[0-9]*<\/version>/<version>${NEW_VERSION}<\/version>/g" README.md || true
 
       - name: Commit and tag
+        env:
+          NEW_VERSION: ${{ steps.new.outputs.version }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add pom.xml README.md
-          git commit -m "chore: bump version to ${{ steps.new.outputs.version }}"
-          git tag "v${{ steps.new.outputs.version }}"
+          git commit -m "chore: bump version to ${NEW_VERSION}"
+          git tag "v${NEW_VERSION}"
           git push origin main
-          git push origin "v${{ steps.new.outputs.version }}"
+          git push origin "v${NEW_VERSION}"
 
       - name: Summary
+        env:
+          CURRENT_VERSION: ${{ steps.current.outputs.version }}
+          NEW_VERSION: ${{ steps.new.outputs.version }}
         run: |
-          echo "## Release v${{ steps.new.outputs.version }}" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "Version bumped from \`${{ steps.current.outputs.version }}\` to \`${{ steps.new.outputs.version }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "The [release workflow](../../actions/workflows/release.yml) will now:" >> $GITHUB_STEP_SUMMARY
-          echo "- Run tests" >> $GITHUB_STEP_SUMMARY
-          echo "- Create GitHub Release" >> $GITHUB_STEP_SUMMARY
+          {
+            echo "## Release v${NEW_VERSION}"
+            echo ""
+            echo "Version bumped from \`${CURRENT_VERSION}\` to \`${NEW_VERSION}\`"
+            echo ""
+            echo "The [release workflow](../../actions/workflows/release.yml) will now:"
+            echo "- Run tests"
+            echo "- Create GitHub Release"
+          } >> "$GITHUB_STEP_SUMMARY"

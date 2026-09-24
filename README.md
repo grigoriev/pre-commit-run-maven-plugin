@@ -7,6 +7,7 @@
 [![Maven Central](https://img.shields.io/maven-central/v/io.github.grigoriev/pre-commit-run-maven-plugin)](https://central.sonatype.com/artifact/io.github.grigoriev/pre-commit-run-maven-plugin)
 [![Java 17+](https://img.shields.io/badge/java-17+-blue.svg)](https://openjdk.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/grigoriev/pre-commit-run-maven-plugin/badge)](https://scorecard.dev/viewer/?uri=github.com/grigoriev/pre-commit-run-maven-plugin)
 
 Maven plugin for running [pre-commit](https://pre-commit.com/) hooks during the Maven build lifecycle.
 
@@ -197,6 +198,13 @@ The default timeout is 300 seconds (5 minutes). For slow hooks, increase the tim
     </files>
 </configuration>
 ```
+
+## Disclaimer
+
+This software is provided "as is", without warranty of any kind, as the LICENSE states. Use
+it at your own risk. Sergey Grigoriev is not liable for damage from its use, as far as the law
+allows. It is published free of charge, outside of any commercial offering, with no
+obligation to support it. Security reports are welcome, see [SECURITY.md](SECURITY.md).
 
 ## License
 
