@@ -53,7 +53,7 @@ Hooks are executed in order. If any hook fails, subsequent hooks are skipped.
 
 ### Verify
 
-Each GitHub release carries a signed provenance bundle. Verify a downloaded file with
+GitHub releases after 1.0.0 carry a signed provenance bundle. Verify a downloaded file with
 `gh attestation verify <file> --repo grigoriev/pre-commit-run-maven-plugin`.
 
 ### Using Glob Patterns
