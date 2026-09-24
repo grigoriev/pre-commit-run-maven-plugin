@@ -2,6 +2,7 @@
 
 [![CI](https://github.com/grigoriev/pre-commit-run-maven-plugin/actions/workflows/ci.yml/badge.svg)](https://github.com/grigoriev/pre-commit-run-maven-plugin/actions/workflows/ci.yml)
 [![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/grigoriev/pre-commit-run-maven-plugin/badge)](https://scorecard.dev/viewer/?uri=github.com/grigoriev/pre-commit-run-maven-plugin)
+[![OpenSSF Best Practices](https://www.bestpractices.dev/projects/14804/badge)](https://www.bestpractices.dev/projects/14804)
 [![GitHub Release](https://img.shields.io/github/v/release/grigoriev/pre-commit-run-maven-plugin)](https://github.com/grigoriev/pre-commit-run-maven-plugin/releases)
 [![Maven Central](https://img.shields.io/maven-central/v/io.github.grigoriev/pre-commit-run-maven-plugin)](https://central.sonatype.com/artifact/io.github.grigoriev/pre-commit-run-maven-plugin)
 [![Java 17+](https://img.shields.io/badge/java-17+-blue.svg)](https://openjdk.org/)
