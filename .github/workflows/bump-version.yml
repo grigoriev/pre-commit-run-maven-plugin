@@ -18,14 +18,22 @@ permissions:
 jobs:
   bump-and-release:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     permissions:
       contents: write
 
     steps:
+      # ref: main, because a dispatch can start from any branch, while the steps
+      # below commit the release version to main. Without it a dispatch from a
+      # feature branch would publish that branch as main.
+      #
+      # persist-credentials: false, so no token lands in .git/config. PAT_TOKEN
+      # reaches only the step that pushes.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with: # zizmor: ignore[artipacked] the Commit and tag step pushes with PAT_TOKEN
+        with:
+          ref: main
           fetch-depth: 0
-          token: ${{ secrets.PAT_TOKEN }}
+          persist-credentials: false
 
       - name: Set up JDK 25
         uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
@@ -99,17 +107,28 @@ jobs:
           NEW_VERSION: ${{ steps.new.outputs.version }}
         run: .github/scripts/changelog-cut.sh "$NEW_VERSION"
 
+      # PAT_TOKEN, not GITHUB_TOKEN: a tag pushed with the default token starts
+      # no workflow, so the release workflow would never see it.
       - name: Commit and tag
         env:
           NEW_VERSION: ${{ steps.new.outputs.version }}
+          PAT_TOKEN: ${{ secrets.PAT_TOKEN }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add pom.xml README.md CHANGELOG.md
           git commit -m "chore: bump version to ${NEW_VERSION}"
           git tag "v${NEW_VERSION}"
-          git push origin main
-          git push origin "v${NEW_VERSION}"
+          # The token reaches git through GIT_ASKPASS, so the remote URL holds no
+          # credential. A URL with the token would show in the process list and in
+          # the output of a failed push. The helper reads the token from the env.
+          # shellcheck disable=SC2016  # $PAT_TOKEN is read when the helper runs
+          printf '#!/bin/sh\nexec echo "$PAT_TOKEN"\n' > "$RUNNER_TEMP/askpass.sh"
+          chmod +x "$RUNNER_TEMP/askpass.sh"
+          export GIT_ASKPASS="$RUNNER_TEMP/askpass.sh"
+          REMOTE="https://x-access-token@github.com/${GITHUB_REPOSITORY}.git"
+          git push "$REMOTE" main
+          git push "$REMOTE" "v${NEW_VERSION}"
 
       - name: Summary
         env:
